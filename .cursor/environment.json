@@ -1,0 +1,11 @@
+{
+  "name": "Caldris",
+  "install": "node --version",
+  "terminals": [
+    {
+      "name": "caldris-server",
+      "command": "node server.js"
+    }
+  ],
+  "ports": [3000]
+}

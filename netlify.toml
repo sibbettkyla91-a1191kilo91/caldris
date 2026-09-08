@@ -1,0 +1,22 @@
+# Netlify deploy configuration for The Realm of Caldris.
+#
+# The app is a static single-page site (index.html + assets) with a single
+# serverless proxy endpoint. Static files are published from the repo root and
+# the Anthropic proxy runs as a Netlify Function that mirrors server.js.
+#
+# Set ANTHROPIC_API_KEY (and optionally ANTHROPIC_VERSION / ANTHROPIC_BASE_URL)
+# in the Netlify UI under Site settings → Environment variables. Do NOT put the
+# API key here — it is a secret.
+
+[build]
+  publish = "."
+
+[functions]
+  directory = "netlify/functions"
+
+# Keep the frontend's existing relative path working by routing /api/caldris to
+# the Netlify Function (rewrite, not redirect: status 200 preserves the URL).
+[[redirects]]
+  from = "/api/caldris"
+  to = "/.netlify/functions/caldris"
+  status = 200

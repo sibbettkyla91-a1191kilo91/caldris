@@ -84,6 +84,24 @@ body {
   50% { transform: scale(1.06); }
 }
 
+/* ── HERO / REALM IMAGERY ── */
+.hub-hero {
+  display: block;
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border);
+}
+.hub-hero.hidden { display: none; }
+.player-avatar {
+  display: block;
+  height: 150px;
+  width: auto;
+  margin: 10px auto 2px;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.5));
+}
+.player-avatar.hidden { display: none; }
+
 /* ── TV BANNER ── */
 .tv-banner {
   margin: 16px;
@@ -152,6 +170,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; flex-shrink: 0;
 }
+.subj-icon.has-img { background-size: cover; background-position: center; font-size: 0; }
 .subj-info { flex: 1; min-width: 0; }
 .subj-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); }
 .subj-desc { font-size: 13px; color: var(--text2); margin-top: 2px; }
@@ -478,8 +497,10 @@ body {
 
   <!-- HUB VIEW -->
   <div id="hub-view" class="view">
+    <img class="hub-hero hidden" id="hub-hero" alt="The Realm of Caldris" />
     <div class="app-header">
       <div class="app-header-eyebrow">The Realm of Caldris</div>
+      <img class="player-avatar hidden" id="player-avatar" alt="Your character" />
       <div class="caldris-orb" id="hub-orb">✦</div>
       <div class="app-header-name" id="hub-name">Adventurer</div>
       <div class="app-header-date" id="hub-date"></div>
@@ -614,8 +635,14 @@ const SESSION_KEY  = 'mq_acad_v3';
 const SUMMARY_KEY  = 'mq_summaries_v1';
 const TV_XP        = 75;
 
-const LEVEL_NAMES   = ['Foundation','Building','Expanding','Advanced','Master'];
-const SESSIONS_PER_LEVEL = 3;
+// ── GRADE LEVELS ──
+// Every subject tracks a school GRADE for the student. A brand-new student
+// ALWAYS starts at Grade 1 (first grade). The student only moves up a grade
+// when Caldris judges that real mastery has been demonstrated and emits the
+// [GRADE_UP] marker — advancement is earned, never automatic.
+const MIN_GRADE = 1;
+const MAX_GRADE = 12;
+const GRADE_UP_MARKER = '[GRADE_UP]';
 
 const SUBJECTS = [
   {id:'reading', name:'Reading',            desc:'Passage + comprehension with Caldris', icon:'📖', xp:25, color:'#4a7fa5', ibg:'rgba(74,127,165,.14)',  model:'claude-opus-4-6',      qbLink:['reading']},
@@ -624,6 +651,63 @@ const SUBJECTS = [
   {id:'life',    name:'Life Skills',         desc:'Practical knowledge for the real world', icon:'⚔️', xp:20, color:'#9a7020', ibg:'rgba(154,112,32,.12)', model:'claude-opus-4-6',      qbLink:[]},
   {id:'pe',      name:'Physical Ed',         desc:'Movement quest — get outside',        icon:'🏃', xp:15, color:'#3d8a5c', ibg:'rgba(61,138,92,.12)',  model:'claude-sonnet-4-20250514', qbLink:[]},
 ];
+
+// ── ARTWORK ──
+// Generated images for the app. Leave a value as '' to fall back to the
+// default emoji/plain look. Drop new files into assets/images/ and point the
+// matching entry here — that's all it takes to add more art.
+const IMAGES = {
+  mainRealm: 'assets/images/realm-main.jpg',   // Hero banner at the top of the Quest Hub
+  player:    'assets/images/matthew.png',       // The student's own character (shown on the Quest Hub)
+  caldris:   'assets/images/caldris.jpg',       // Chat avatar next to "Caldris" (placeholder art for now)
+  sidekick:  'assets/images/sidekick.png',      // Sidekick art (transparent) — not placed on screen yet
+  // Per-realm (subject) artwork, keyed by subject id.
+  realms: {
+    reading: '',
+    writing: '',
+    math:    '',
+    life:    '',
+    pe:      'assets/images/realm-campsite.jpg',
+  },
+};
+
+// Apply the Caldris portrait to the chat avatar.
+function applyCaldrisAvatar() {
+  if (!IMAGES.caldris) return;
+  const el = document.getElementById('chat-orb');
+  if (!el) return;
+  el.style.backgroundImage = `url('${IMAGES.caldris}')`;
+  el.style.backgroundSize = 'cover';
+  el.style.backgroundPosition = 'center';
+  el.textContent = '';
+}
+
+// Show the student's own character on the Quest Hub (falls back to the orb).
+function applyPlayerAvatar() {
+  const pa  = document.getElementById('player-avatar');
+  const orb = document.getElementById('hub-orb');
+  if (!pa) return;
+  if (IMAGES.player) {
+    pa.src = IMAGES.player;
+    pa.classList.remove('hidden');
+    if (orb) orb.style.display = 'none';
+  } else {
+    pa.classList.add('hidden');
+    if (orb) orb.style.display = '';
+  }
+}
+
+// Apply the hero banner on the Quest Hub.
+function applyHubHero() {
+  const hero = document.getElementById('hub-hero');
+  if (!hero) return;
+  if (IMAGES.mainRealm) {
+    hero.src = IMAGES.mainRealm;
+    hero.classList.remove('hidden');
+  } else {
+    hero.classList.add('hidden');
+  }
+}
 
 let activeSubject = null;
 let chatHistory   = [];   // API message history
@@ -655,6 +739,42 @@ function getLevels() {
 }
 function saveLevels(l) {
   try { localStorage.setItem(LEVELS_KEY, JSON.stringify(l)); } catch(e) {}
+}
+
+// A subject's current school grade. Defaults to Grade 1 for any new student
+// (no stored value) and is clamped to the 1..12 range. Grades live inside the
+// existing levels object under a `<subjectId>_grade` key.
+function getGrade(subjectId, levels) {
+  const l = levels || getLevels();
+  const g = parseInt(l[subjectId + '_grade'], 10);
+  if (!Number.isFinite(g) || g < MIN_GRADE) return MIN_GRADE;
+  return Math.min(g, MAX_GRADE);
+}
+function setGrade(subjectId, grade) {
+  const l = getLevels();
+  l[subjectId + '_grade'] = Math.max(MIN_GRADE, Math.min(grade, MAX_GRADE));
+  saveLevels(l);
+  return l[subjectId + '_grade'];
+}
+
+// Kid-friendly grade wording, e.g. gradeName(1) -> "1st Grade".
+function ordinal(n) {
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
+}
+function gradeName(grade) {
+  return ordinal(grade) + ' Grade';
+}
+
+// Pure helper: given a raw AI reply, report which markers it contains and the
+// text to actually display (markers stripped out).
+function parseReply(rawText) {
+  const text = rawText || '';
+  return {
+    complete: text.includes('[QUEST_COMPLETE]'),
+    gradeUp:  text.includes(GRADE_UP_MARKER),
+    display:  text.replace(/\[QUEST_COMPLETE\]/g, '').replace(/\[GRADE_UP\]/g, '').trim(),
+  };
 }
 
 function getShared() {
@@ -698,18 +818,52 @@ function doSetup() {
 }
 
 // ══════════════════════════════════════════════════════
-// VOICE / TTS  — FIX: natural pitch & rate, US voice preferred
+// VOICE / TTS  — warm, inviting, slightly-British delivery
 // ══════════════════════════════════════════════════════
+// Ordered preference list of known-good English (British) voices across
+// platforms. We pick the first that exists on the device, then fall back to
+// any en-GB voice, then any English voice, then the browser default.
+const BRITISH_VOICE_PREFERENCES = [
+  'Google UK English Male',   // Chrome / Chrome OS — warm, natural en-GB
+  'Google UK English Female', // Chrome / Chrome OS — warm, natural en-GB
+  'Daniel',                   // macOS / iOS — classic gentle British male
+  'Arthur',                   // macOS — warm British male
+  'Oliver',                   // macOS — friendly British male
+  'Serena',                   // macOS — soft British female
+  'Kate',                     // macOS — friendly British female
+  'Microsoft Ryan Online (Natural) - English (United Kingdom)', // Edge neural en-GB male
+  'Microsoft Sonia Online (Natural) - English (United Kingdom)', // Edge neural en-GB female
+  'Microsoft Libby Online (Natural) - English (United Kingdom)', // Edge neural en-GB female
+  'Ryan',                     // Windows en-GB male (short name)
+  'Sonia',                    // Windows en-GB female (short name)
+  'Libby',                    // Windows en-GB female (short name)
+  'George',                   // Windows en-GB male
+  'Hazel',                    // Windows en-GB female
+];
+
+// Pure voice-picker: given a list of SpeechSynthesisVoice-like objects,
+// return the best warm/British match, or null if the list is empty.
+// Never throws, even on empty/garbage input.
+function pickCaldrisVoice(voices) {
+  if (!Array.isArray(voices) || voices.length === 0) return null;
+  const byName = (name) =>
+    voices.find(v => v && typeof v.name === 'string' &&
+      v.name.toLowerCase() === name.toLowerCase());
+  // 1) Exact preferred names, in priority order.
+  for (const name of BRITISH_VOICE_PREFERENCES) {
+    const hit = byName(name);
+    if (hit) return hit;
+  }
+  const langStarts = (prefix) =>
+    voices.find(v => v && typeof v.lang === 'string' &&
+      v.lang.toLowerCase().startsWith(prefix));
+  // 2) Any British English voice, 3) any English voice, 4) browser default.
+  return langStarts('en-gb') || langStarts('en') || voices[0] || null;
+}
+
 function initVoice() {
-  const voices = speechSynthesis.getVoices();
-  // Prefer a clear US English voice — avoid dramatic UK/accent voices
-  caldrisVoice =
-    voices.find(v => /google us english/i.test(v.name)) ||
-    voices.find(v => /samantha/i.test(v.name)) ||
-    voices.find(v => v.lang === 'en-US' && /male/i.test(v.name)) ||
-    voices.find(v => v.lang === 'en-US') ||
-    voices.find(v => v.lang.startsWith('en')) ||
-    null;
+  const chosen = pickCaldrisVoice(speechSynthesis.getVoices());
+  if (chosen) caldrisVoice = chosen;  // keep prior choice if list is momentarily empty
 }
 speechSynthesis.onvoiceschanged = initVoice;
 initVoice();
@@ -720,6 +874,7 @@ function speak(text) {
   speechSynthesis.cancel();
   const clean = text
     .replace(/\[QUEST_COMPLETE\]/g, '')
+    .replace(/\[GRADE_UP\]/g, '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
     .replace(/[#_~`>*]/g, '')
     .replace(/<[^>]+>/g, '')
@@ -727,10 +882,12 @@ function speak(text) {
   if (!clean) return;
   const u = new SpeechSynthesisUtterance(clean);
   if (caldrisVoice) u.voice = caldrisVoice;
-  // FIX: natural, clear speech — no dramatic pitch/rate
-  u.rate   = 0.95;
-  u.pitch  = 1.0;
-  u.volume = 1;
+  // Warm, inviting delivery for a young listener: a touch slower than default
+  // so words are easy to follow, a hair above default pitch for friendliness,
+  // and full comfortable volume.
+  u.rate   = 0.9;
+  u.pitch  = 1.05;
+  u.volume = 1.0;
   u.onstart = () => setOrbSpeaking(true);
   u.onend = u.onerror = () => setOrbSpeaking(false);
   speechSynthesis.speak(u);
@@ -829,16 +986,27 @@ function setupInputHandlers() {
 // ══════════════════════════════════════════════════════
 // SYSTEM PROMPTS — REWRITTEN: patient mentor, never harsh
 // ══════════════════════════════════════════════════════
-function getPrompt(sid, level) {
-  const lvlName = LEVEL_NAMES[level - 1];
+function getPrompt(sid, grade) {
+  const g     = Math.max(MIN_GRADE, Math.min(grade || MIN_GRADE, MAX_GRADE));
+  const gName = gradeName(g);
 
-  // FIX: Completely rewritten — warm, encouraging, never harsh or dark
-  const BASE = `You are Caldris, a wise and patient guide who helps young learners grow their knowledge and skills. You are speaking with Matthew, an 11-year-old student in Albany, Oregon. Matthew is currently at Level ${level} of 5 (${lvlName} level).
+  const BASE = `You are Caldris, a wise and patient guide who helps young learners grow their knowledge and skills. You are speaking with Matthew, a student in Albany, Oregon. Matthew is currently working at a ${gName} level (Grade ${g}) in this subject.
 
-ABOUT MATTHEW:
-- He is 11 years old and works hard to learn
-- He benefits from clear, simple explanations and patient guidance
-- He is bright and capable — he just needs support and encouragement
+GRADE LEVEL — THIS IS THE MOST IMPORTANT RULE:
+- Matthew's CURRENT grade level for this subject is GRADE ${g} (${gName}).
+- Teach, explain, and quiz ONLY at a ${gName} level right now. Use the vocabulary, reading passages, numbers, and problems a typical ${gName} student would meet — never harder, never easier.
+- Every student begins at GRADE 1 (first grade) and climbs upward only by proving real understanding. Do not skip ahead or assume he already knows higher-grade material.${g === 1 ? `\n- Because Matthew is at GRADE 1 right now, keep everything very simple: short, common words, single-digit numbers, one-step ideas, and lots of gentle encouragement. This is first grade — start at the very beginning.` : ''}
+
+CHECK FOR UNDERSTANDING:
+- Ask questions and WAIT for Matthew's answers. Don't just hand him information — make him think and respond.
+- Ask him to show his reasoning: "How did you figure that out?" or "Can you tell me more?"
+- Look for genuine, repeated understanding across several questions — not one lucky guess.
+
+MOVING UP A GRADE (adaptive progression):
+- Grade ${g} is where Matthew stays until he has clearly and consistently mastered it.
+- ONLY when Matthew has demonstrated solid mastery of GRADE ${g} material across THIS whole session — several correct, well-reasoned answers in a row, not a single lucky one — should you promote him to the next grade.
+- When (and ONLY when) he has truly earned it, output the exact marker ${GRADE_UP_MARKER} at the very end of your final message. The app reads this marker and moves Matthew up to Grade ${g + 1}.
+- If he has NOT clearly mastered this grade yet, do NOT output ${GRADE_UP_MARKER}. Staying at the same grade is completely fine and normal — mastery is earned, not given away. Never promote him just because he showed up or tried hard.
 
 YOUR PERSONALITY:
 - Warm, patient, and genuinely encouraging — like a mentor who believes in Matthew
@@ -855,22 +1023,23 @@ YOUR APPROACH TO ANSWERS:
 IMPORTANT RULES:
 - NEVER use discouraging language, sarcasm, or anything that makes Matthew feel bad about himself
 - NEVER be cold, stern, or dramatic in a way that is scary or off-putting
-- Keep sentences short and vocabulary accessible
+- Keep sentences short and vocabulary accessible for a ${gName} student
 - Be genuinely enthusiastic about what Matthew gets right
 - Guide him gently through what he gets wrong
-- When the session is complete and Matthew has genuinely engaged: output [QUEST_COMPLETE] at the very end — nothing after it
-- NEVER output [QUEST_COMPLETE] without real, meaningful participation from Matthew`;
+- When the session is complete and Matthew has genuinely engaged: output [QUEST_COMPLETE] at the very end
+- NEVER output [QUEST_COMPLETE] without real, meaningful participation from Matthew
+- [QUEST_COMPLETE] and ${GRADE_UP_MARKER} are SEPARATE signals: a session can complete WITHOUT a grade-up. Finishing the session is not the same as mastering the grade. Only add ${GRADE_UP_MARKER} when true mastery was shown. If both apply, you may output both markers together at the very end.`;
 
   const SUBJECTS_MAP = {
-    reading: `\n\nSUBJECT: READING\nPresent a short, interesting reading passage (3rd-4th grade level, 4-6 sentences) about something engaging — animals, science, adventure, history, mysteries. Then ask 2-3 comprehension questions one at a time. Be patient if Matthew needs to re-read. Celebrate when he understands something well.`,
+    reading: `\n\nSUBJECT: READING\nPresent a short, interesting reading passage written at a ${gName} reading level (keep it appropriately short and simple for that grade) about something engaging — animals, science, adventure, history, mysteries. Then ask comprehension questions one at a time, matched to a ${gName} level. Be patient if Matthew needs to re-read. Celebrate when he understands something well.`,
 
-    writing: `\n\nSUBJECT: WRITING & SPELLING\nDrill 5 spelling words one at a time. Choose from: because, thought, enough, different, probably, through, believe, special, important, together. Mark right or wrong honestly and kindly. Then give an interesting writing prompt that Matthew would enjoy. Ask for at least 3 real sentences. Be encouraging about his ideas even while helping with spelling/grammar.`,
+    writing: `\n\nSUBJECT: WRITING & SPELLING\nDrill 5 spelling words one at a time, choosing words a typical ${gName} student would be learning to spell (simpler words for lower grades, harder words for higher grades). Mark right or wrong honestly and kindly. Then give a writing prompt suited to a ${gName} level and ask for an appropriate amount of writing for that grade. Be encouraging about his ideas even while helping with spelling/grammar.`,
 
-    math: `\n\nSUBJECT: MATH\nPresent 4 math problems one at a time: multiplication, money math, a word problem, and something with fractions or percentages. Frame them in everyday scenarios Matthew can relate to — buying things, sharing food, planning activities. When he gets something wrong, explain WHY kindly and give him one more try.`,
+    math: `\n\nSUBJECT: MATH\nPresent math problems one at a time at a ${gName} level (for early grades: counting, simple addition/subtraction with small numbers; for higher grades: multiplication, money, fractions, percentages, multi-step word problems). Frame them in everyday scenarios Matthew can relate to. When he gets something wrong, explain WHY kindly and give him one more try.`,
 
-    life: `\n\nSUBJECT: LIFE SKILLS\nChoose ONE practical topic: cooking basics, handling money, first aid, resolving conflicts, home emergencies, personal hygiene, time management, or household tasks. Teach it through conversation and scenarios. Make it feel relevant and useful — this is knowledge for real life, and Matthew is smart enough to use it.`,
+    life: `\n\nSUBJECT: LIFE SKILLS\nChoose ONE practical topic appropriate for a ${gName} learner: cooking basics, handling money, first aid, resolving conflicts, home emergencies, personal hygiene, time management, or household tasks. Teach it through conversation and scenarios at that level. Make it feel relevant and useful — this is knowledge for real life.`,
 
-    pe: `\n\nSUBJECT: PHYSICAL EDUCATION\nAssign a physical activity: a short bodyweight workout (jumping jacks, push-ups, stretches), a walk outside with something to notice and remember, or a simple active challenge. Tell Matthew to go do it and come back. When he returns, ask 2-3 friendly questions to make sure he actually did it and enjoyed it.`,
+    pe: `\n\nSUBJECT: PHYSICAL EDUCATION\nAssign a physical activity suited to a ${gName} learner: a short bodyweight workout (jumping jacks, push-ups, stretches), a walk outside with something to notice and remember, or a simple active challenge. Tell Matthew to go do it and come back. When he returns, ask 2-3 friendly questions to make sure he actually did it and enjoyed it.`,
   };
 
   return BASE + (SUBJECTS_MAP[sid] || '');
@@ -926,26 +1095,26 @@ async function doSend(isOpening) {
   showTyping();
 
   const session = getSession();
-  const levels  = getLevels();
-  const level   = Math.min((levels[activeSubject.id] || 1), 5);
-  const system  = getPrompt(activeSubject.id, level);
+  const grade   = getGrade(activeSubject.id);
+  const system  = getPrompt(activeSubject.id, grade);
   const model   = activeSubject.model;
 
   const apiMessages = isOpening
-    ? [{ role: 'user', content: `Start today's ${activeSubject.name} session for ${session.name}. Level ${level}. Begin warmly and get started.` }]
+    ? [{ role: 'user', content: `Start today's ${activeSubject.name} session for ${session.name}. He is currently at Grade ${grade} (${gradeName(grade)}) in this subject. Begin warmly at that grade level and get started.` }]
     : [...chatHistory];
 
   try {
     const data = await callCaldris(system, apiMessages, model);
     const rawText = data.content?.map(c => c.text || '').join('\n').trim() || '...';
-    const isComplete = rawText.includes('[QUEST_COMPLETE]');
-    const displayText = rawText.replace(/\[QUEST_COMPLETE\]/g, '').trim();
+    const { complete: isComplete, gradeUp: isGradeUp, display: displayText } = parseReply(rawText);
 
     removeTyping();
     addMsg('caldris', displayText);
     speak(displayText);
 
     chatHistory = [...apiMessages, { role: 'assistant', content: rawText }];
+
+    if (isGradeUp) onGradeUp();
 
     if (isComplete) {
       questDone = true;
@@ -977,6 +1146,19 @@ function handleSend() {
   doSend(false);
 }
 
+// Called when Caldris judges the student has mastered the current grade and
+// emits the [GRADE_UP] marker. Advancement is earned here — never on a timer
+// or on session count — so it grows with real, demonstrated understanding.
+function onGradeUp() {
+  if (!activeSubject) return;
+  const oldGrade = getGrade(activeSubject.id);
+  if (oldGrade >= MAX_GRADE) return;
+  const newGrade = setGrade(activeSubject.id, oldGrade + 1);
+  addMsg('system', `🎉 You've advanced to ${gradeName(newGrade)}! Your ${activeSubject.name} skills have grown.`);
+  const sub = document.querySelector('.chat-hd-sub');
+  if (sub) sub.textContent = activeSubject.name + ' — Grade ' + newGrade;
+}
+
 function onQuestComplete() {
   // Save transcript for parent review
   saveSummary(activeSubject.id, chatMessages);
@@ -989,15 +1171,9 @@ function onQuestComplete() {
     saveSession(s);
   }
 
-  // Update levels (count sessions toward level-up)
-  const l = getLevels();
-  const sess = (l[activeSubject.id + '_sessions'] || 0) + 1;
-  l[activeSubject.id + '_sessions'] = sess;
-  const curLv = l[activeSubject.id] || 1;
-  if (sess % SESSIONS_PER_LEVEL === 0 && curLv < 5) {
-    l[activeSubject.id] = curLv + 1;
-  }
-  saveLevels(l);
+  // Grade progression is NOT tied to finishing sessions — a completed quest
+  // does not advance the grade. Grades only move up when the [GRADE_UP] marker
+  // is emitted (see onGradeUp), so difficulty tracks demonstrated mastery.
 
   // Update shared key for quest board sync
   const shared = getShared();
@@ -1042,9 +1218,8 @@ function openSubject(subj) {
   document.getElementById('done-badge').className = 'done-badge';
   document.getElementById('chat-in').value = '';
 
-  const levels = getLevels();
-  const level  = Math.min(levels[subj.id] || 1, 5);
-  document.getElementById('chat-hd-sub') && (document.querySelector('.chat-hd-sub').textContent = subj.name + ' — Level ' + level);
+  const grade = getGrade(subj.id);
+  document.getElementById('chat-hd-sub') && (document.querySelector('.chat-hd-sub').textContent = subj.name + ' — Grade ' + grade);
 
   showView('chat-view');
   document.getElementById('mode-toggle').style.display = 'none';
@@ -1069,6 +1244,8 @@ function renderHub() {
   const levels = getLevels();
   const shared = getShared();
 
+  applyHubHero();
+  applyPlayerAvatar();
   document.getElementById('hub-name').textContent = s.name || 'Adventurer';
   document.getElementById('hub-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
 
@@ -1097,17 +1274,21 @@ function renderHub() {
   container.innerHTML = '';
   SUBJECTS.forEach(subj => {
     const done  = !!(s.completed?.[subj.id]);
-    const level = Math.min(levels[subj.id] || 1, 5);
+    const grade = getGrade(subj.id, levels);
     const card  = document.createElement('div');
     card.className = 'subject-card' + (done ? ' done' : '');
     card.style.cssText = `border-left: 3px solid ${subj.color}`;
     if (!done) card.onclick = () => openSubject(subj);
+    const realmImg = IMAGES.realms[subj.id];
+    const iconHtml = realmImg
+      ? `<div class="subj-icon has-img" style="background-image:url('${realmImg}');"></div>`
+      : `<div class="subj-icon" style="background:${subj.ibg};">${subj.icon}</div>`;
     card.innerHTML = `
-      <div class="subj-icon" style="background:${subj.ibg};">${subj.icon}</div>
+      ${iconHtml}
       <div class="subj-info">
         <div class="subj-name">${subj.name}</div>
         <div class="subj-desc">${subj.desc}</div>
-        <div class="subj-level">Level ${level} — ${LEVEL_NAMES[level-1]}</div>
+        <div class="subj-level">Grade ${grade} · ${gradeName(grade)}</div>
       </div>
       <div>
         <div class="subj-xp">+${subj.xp} XP</div>
@@ -1148,12 +1329,12 @@ function renderParent() {
   const acadList = document.getElementById('academy-subject-list');
   acadList.innerHTML = SUBJECTS.map(sub => {
     const done  = !!(s.completed?.[sub.id]);
-    const level = Math.min(levels[sub.id] || 1, 5);
+    const grade = getGrade(sub.id, levels);
     return `<div class="acad-item">
       <span class="acad-status">${done ? '✅' : '⬜'}</span>
       <span class="acad-icon">${sub.icon}</span>
       <span class="acad-name">${sub.name}</span>
-      <span class="acad-level">Lv ${level} ${LEVEL_NAMES[level-1]}</span>
+      <span class="acad-level">Grade ${grade}</span>
     </div>`;
   }).join('');
 
@@ -1324,6 +1505,7 @@ function enterParentMode() {
 // BOOT
 // ══════════════════════════════════════════════════════
 function boot() {
+  applyCaldrisAvatar();
   const s = getSession();
   if (!s.setupDone) {
     document.getElementById('setup-screen').style.display = 'flex';
