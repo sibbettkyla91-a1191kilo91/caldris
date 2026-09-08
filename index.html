@@ -93,6 +93,14 @@ body {
   border-bottom: 1px solid var(--border);
 }
 .hub-hero.hidden { display: none; }
+.player-avatar {
+  display: block;
+  height: 150px;
+  width: auto;
+  margin: 10px auto 2px;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.5));
+}
+.player-avatar.hidden { display: none; }
 
 /* ── TV BANNER ── */
 .tv-banner {
@@ -492,6 +500,7 @@ body {
     <img class="hub-hero hidden" id="hub-hero" alt="The Realm of Caldris" />
     <div class="app-header">
       <div class="app-header-eyebrow">The Realm of Caldris</div>
+      <img class="player-avatar hidden" id="player-avatar" alt="Your character" />
       <div class="caldris-orb" id="hub-orb">✦</div>
       <div class="app-header-name" id="hub-name">Adventurer</div>
       <div class="app-header-date" id="hub-date"></div>
@@ -643,8 +652,9 @@ const SUBJECTS = [
 // matching entry here — that's all it takes to add more art.
 const IMAGES = {
   mainRealm: 'assets/images/realm-main.jpg',   // Hero banner at the top of the Quest Hub
-  caldris:   'assets/images/caldris.jpg',       // Caldris's portrait (hub + chat avatar)
-  sidekick:  '',                                // TODO: add sidekick art when provided
+  player:    'assets/images/matthew.png',       // The student's own character (shown on the Quest Hub)
+  caldris:   'assets/images/caldris.jpg',       // Chat avatar next to "Caldris" (placeholder art for now)
+  sidekick:  'assets/images/sidekick.png',      // Sidekick art (transparent) — not placed on screen yet
   // Per-realm (subject) artwork, keyed by subject id.
   realms: {
     reading: '',
@@ -655,17 +665,30 @@ const IMAGES = {
   },
 };
 
-// Apply the Caldris portrait to an orb element (hub or chat avatar).
+// Apply the Caldris portrait to the chat avatar.
 function applyCaldrisAvatar() {
   if (!IMAGES.caldris) return;
-  ['hub-orb', 'chat-orb'].forEach(id => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.style.backgroundImage = `url('${IMAGES.caldris}')`;
-    el.style.backgroundSize = 'cover';
-    el.style.backgroundPosition = 'center';
-    el.textContent = '';
-  });
+  const el = document.getElementById('chat-orb');
+  if (!el) return;
+  el.style.backgroundImage = `url('${IMAGES.caldris}')`;
+  el.style.backgroundSize = 'cover';
+  el.style.backgroundPosition = 'center';
+  el.textContent = '';
+}
+
+// Show the student's own character on the Quest Hub (falls back to the orb).
+function applyPlayerAvatar() {
+  const pa  = document.getElementById('player-avatar');
+  const orb = document.getElementById('hub-orb');
+  if (!pa) return;
+  if (IMAGES.player) {
+    pa.src = IMAGES.player;
+    pa.classList.remove('hidden');
+    if (orb) orb.style.display = 'none';
+  } else {
+    pa.classList.add('hidden');
+    if (orb) orb.style.display = '';
+  }
 }
 
 // Apply the hero banner on the Quest Hub.
@@ -1125,6 +1148,7 @@ function renderHub() {
   const shared = getShared();
 
   applyHubHero();
+  applyPlayerAvatar();
   document.getElementById('hub-name').textContent = s.name || 'Adventurer';
   document.getElementById('hub-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
 
