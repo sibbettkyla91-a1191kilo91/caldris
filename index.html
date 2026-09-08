@@ -633,6 +633,7 @@ const SHARED_KEY   = 'mq_ecosystem_v1';
 const LEVELS_KEY   = 'mq_levels_v1';
 const SESSION_KEY  = 'mq_acad_v3';
 const SUMMARY_KEY  = 'mq_summaries_v1';
+const PROFILE_KEY  = 'mq_profile_v1';   // PERSISTENT — child name + parent PIN + setup flag (survive daily reset)
 const TV_XP        = 75;
 
 // ── GRADE LEVELS ──
@@ -724,14 +725,50 @@ let questDone     = false;
 // STORAGE
 // ══════════════════════════════════════════════════════
 function getSession() {
+  // Daily fields (completed/xp/incidents) come from the date-gated session and
+  // reset every calendar day. Name/PIN/setupDone are ALWAYS overlaid from the
+  // persistent profile so they survive the daily reset.
+  let s = null;
   try {
     const r = localStorage.getItem(SESSION_KEY);
-    if (r) { const s = JSON.parse(r); if (s.date === TODAY) return s; }
+    if (r) { const parsed = JSON.parse(r); if (parsed.date === TODAY) s = parsed; }
   } catch(e) {}
-  return { date: TODAY, completed: {}, xp: 0, name: '', pin: '', setupDone: false };
+  if (!s) s = { date: TODAY, completed: {}, xp: 0 };
+  const p = getProfile();
+  s.name = p.name; s.pin = p.pin; s.setupDone = p.setupDone;
+  return s;
 }
 function saveSession(s) {
   try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch(e) {}
+}
+
+// Persistent profile: child name + parent PIN + setup flag. Unlike the daily
+// session this is NOT date-gated, so it carries over from day to day.
+function getProfile() {
+  try {
+    const r = localStorage.getItem(PROFILE_KEY);
+    if (r) {
+      const p = JSON.parse(r);
+      if (p) return { name: p.name || '', pin: p.pin || '', setupDone: !!p.setupDone };
+    }
+  } catch(e) {}
+  // One-time migration for returning users who set up before this fix: their
+  // name/PIN live only in the old session, so lift them into the profile.
+  try {
+    const r = localStorage.getItem(SESSION_KEY);
+    if (r) {
+      const s = JSON.parse(r);
+      if (s && (s.name || s.pin)) {
+        const p = { name: s.name || '', pin: s.pin || '', setupDone: !!s.setupDone };
+        saveProfile(p);
+        return p;
+      }
+    }
+  } catch(e) {}
+  return { name: '', pin: '', setupDone: false };
+}
+function saveProfile(p) {
+  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch(e) {}
 }
 
 function getLevels() {
@@ -810,6 +847,7 @@ function doSetup() {
   const pin  = document.getElementById('setup-pin').value.trim();
   if (!name) { alert('Please enter your name.'); return; }
   if (pin.length < 4 || !/^\d+$/.test(pin)) { alert('PIN must be 4 digits.'); return; }
+  saveProfile({ name, pin, setupDone: true });
   const s = getSession();
   s.name = name; s.pin = pin; s.setupDone = true;
   saveSession(s);
