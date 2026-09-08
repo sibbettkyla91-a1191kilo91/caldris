@@ -818,18 +818,52 @@ function doSetup() {
 }
 
 // ══════════════════════════════════════════════════════
-// VOICE / TTS  — FIX: natural pitch & rate, US voice preferred
+// VOICE / TTS  — warm, inviting, slightly-British delivery
 // ══════════════════════════════════════════════════════
+// Ordered preference list of known-good English (British) voices across
+// platforms. We pick the first that exists on the device, then fall back to
+// any en-GB voice, then any English voice, then the browser default.
+const BRITISH_VOICE_PREFERENCES = [
+  'Google UK English Male',   // Chrome / Chrome OS — warm, natural en-GB
+  'Google UK English Female', // Chrome / Chrome OS — warm, natural en-GB
+  'Daniel',                   // macOS / iOS — classic gentle British male
+  'Arthur',                   // macOS — warm British male
+  'Oliver',                   // macOS — friendly British male
+  'Serena',                   // macOS — soft British female
+  'Kate',                     // macOS — friendly British female
+  'Microsoft Ryan Online (Natural) - English (United Kingdom)', // Edge neural en-GB male
+  'Microsoft Sonia Online (Natural) - English (United Kingdom)', // Edge neural en-GB female
+  'Microsoft Libby Online (Natural) - English (United Kingdom)', // Edge neural en-GB female
+  'Ryan',                     // Windows en-GB male (short name)
+  'Sonia',                    // Windows en-GB female (short name)
+  'Libby',                    // Windows en-GB female (short name)
+  'George',                   // Windows en-GB male
+  'Hazel',                    // Windows en-GB female
+];
+
+// Pure voice-picker: given a list of SpeechSynthesisVoice-like objects,
+// return the best warm/British match, or null if the list is empty.
+// Never throws, even on empty/garbage input.
+function pickCaldrisVoice(voices) {
+  if (!Array.isArray(voices) || voices.length === 0) return null;
+  const byName = (name) =>
+    voices.find(v => v && typeof v.name === 'string' &&
+      v.name.toLowerCase() === name.toLowerCase());
+  // 1) Exact preferred names, in priority order.
+  for (const name of BRITISH_VOICE_PREFERENCES) {
+    const hit = byName(name);
+    if (hit) return hit;
+  }
+  const langStarts = (prefix) =>
+    voices.find(v => v && typeof v.lang === 'string' &&
+      v.lang.toLowerCase().startsWith(prefix));
+  // 2) Any British English voice, 3) any English voice, 4) browser default.
+  return langStarts('en-gb') || langStarts('en') || voices[0] || null;
+}
+
 function initVoice() {
-  const voices = speechSynthesis.getVoices();
-  // Prefer a clear US English voice — avoid dramatic UK/accent voices
-  caldrisVoice =
-    voices.find(v => /google us english/i.test(v.name)) ||
-    voices.find(v => /samantha/i.test(v.name)) ||
-    voices.find(v => v.lang === 'en-US' && /male/i.test(v.name)) ||
-    voices.find(v => v.lang === 'en-US') ||
-    voices.find(v => v.lang.startsWith('en')) ||
-    null;
+  const chosen = pickCaldrisVoice(speechSynthesis.getVoices());
+  if (chosen) caldrisVoice = chosen;  // keep prior choice if list is momentarily empty
 }
 speechSynthesis.onvoiceschanged = initVoice;
 initVoice();
@@ -848,10 +882,12 @@ function speak(text) {
   if (!clean) return;
   const u = new SpeechSynthesisUtterance(clean);
   if (caldrisVoice) u.voice = caldrisVoice;
-  // FIX: natural, clear speech — no dramatic pitch/rate
-  u.rate   = 0.95;
-  u.pitch  = 1.0;
-  u.volume = 1;
+  // Warm, inviting delivery for a young listener: a touch slower than default
+  // so words are easy to follow, a hair above default pitch for friendliness,
+  // and full comfortable volume.
+  u.rate   = 0.9;
+  u.pitch  = 1.05;
+  u.volume = 1.0;
   u.onstart = () => setOrbSpeaking(true);
   u.onend = u.onerror = () => setOrbSpeaking(false);
   speechSynthesis.speak(u);
