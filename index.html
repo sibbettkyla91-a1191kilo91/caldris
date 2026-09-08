@@ -483,6 +483,7 @@ body {
       <div class="caldris-orb" id="hub-orb">✦</div>
       <div class="app-header-name" id="hub-name">Adventurer</div>
       <div class="app-header-date" id="hub-date"></div>
+      <div class="app-header-date" id="hub-mode">Preparing today's lessons...</div>
     </div>
 
     <div class="tv-banner" id="tv-banner">
@@ -490,7 +491,7 @@ body {
       <div class="tv-info">
         <div class="tv-status-label">Screen Time Gateway</div>
         <div class="tv-status-main" id="tv-status-main">LOCKED</div>
-        <div class="tv-status-sub" id="tv-status-sub">Complete all quests to unlock</div>
+        <div class="tv-status-sub" id="tv-status-sub">Finish 3 subjects and 75 XP to unlock</div>
       </div>
     </div>
 
@@ -603,84 +604,45 @@ body {
   </div>
 </div>
 
+<script src="lib/caldris-core.js"></script>
+<script src="lib/lessons.js"></script>
 <script>
+if (!window.CaldrisCore || !window.CaldrisLessons) {
+  document.body.innerHTML = '<p style="color:#d4d0c8;font-family:Georgia,serif;padding:24px;">Caldris could not load its lesson files. Open this app from the project folder, or run <code>node server.js</code> and use http://127.0.0.1:3000</p>';
+  throw new Error('Caldris libraries failed to load');
+}
 // ══════════════════════════════════════════════════════
 // CONSTANTS & STATE
 // ══════════════════════════════════════════════════════
-const TODAY        = new Date().toDateString();
-const SHARED_KEY   = 'mq_ecosystem_v1';
-const LEVELS_KEY   = 'mq_levels_v1';
-const SESSION_KEY  = 'mq_acad_v3';
-const SUMMARY_KEY  = 'mq_summaries_v1';
-const TV_XP        = 75;
-
-const LEVEL_NAMES   = ['Foundation','Building','Expanding','Advanced','Master'];
-const SESSIONS_PER_LEVEL = 3;
-
-const SUBJECTS = [
-  {id:'reading', name:'Reading',            desc:'Passage + comprehension with Caldris', icon:'📖', xp:25, color:'#4a7fa5', ibg:'rgba(74,127,165,.14)',  model:'claude-opus-4-6',      qbLink:['reading']},
-  {id:'writing', name:'Writing & Spelling', desc:'Spelling drill + writing prompt',      icon:'✍️', xp:25, color:'#7b5ea7', ibg:'rgba(123,94,167,.14)', model:'claude-sonnet-4-20250514', qbLink:['writing','math']},
-  {id:'math',    name:'Math',               desc:'Real-world problems with Caldris',     icon:'🔢', xp:25, color:'#2a8070', ibg:'rgba(42,128,112,.14)', model:'claude-sonnet-4-20250514', qbLink:['writing','math']},
-  {id:'life',    name:'Life Skills',         desc:'Practical knowledge for the real world', icon:'⚔️', xp:20, color:'#9a7020', ibg:'rgba(154,112,32,.12)', model:'claude-opus-4-6',      qbLink:[]},
-  {id:'pe',      name:'Physical Ed',         desc:'Movement quest — get outside',        icon:'🏃', xp:15, color:'#3d8a5c', ibg:'rgba(61,138,92,.12)',  model:'claude-sonnet-4-20250514', qbLink:[]},
-];
+const caldris     = CaldrisCore.create();
+const TODAY       = caldris.today;
+const TV_XP       = CaldrisCore.TV_XP;
+const LEVEL_NAMES = CaldrisCore.LEVEL_NAMES;
+const SUBJECTS    = CaldrisCore.SUBJECTS;
 
 let activeSubject = null;
-let chatHistory   = [];   // API message history
-let chatMessages  = [];   // Display messages
+let chatHistory   = [];
+let chatMessages  = [];
 let busy          = false;
 let ttsEnabled    = true;
 let caldrisVoice  = null;
 let recognition   = null;
 let isListening   = false;
-let userEditing   = false;  // FIX: prevents mic from overwriting user edits
+let userEditing   = false;
 let questDone     = false;
+let liveCaldris   = false;
+let useOffline    = false;
+let lessonState   = null;
+let inputReady    = false;
 
-// ══════════════════════════════════════════════════════
-// STORAGE
-// ══════════════════════════════════════════════════════
-function getSession() {
-  try {
-    const r = localStorage.getItem(SESSION_KEY);
-    if (r) { const s = JSON.parse(r); if (s.date === TODAY) return s; }
-  } catch(e) {}
-  return { date: TODAY, completed: {}, xp: 0, name: '', pin: '', setupDone: false };
-}
-function saveSession(s) {
-  try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch(e) {}
-}
-
-function getLevels() {
-  try { return JSON.parse(localStorage.getItem(LEVELS_KEY)) || {}; } catch(e) { return {}; }
-}
-function saveLevels(l) {
-  try { localStorage.setItem(LEVELS_KEY, JSON.stringify(l)); } catch(e) {}
-}
-
-function getShared() {
-  try {
-    const r = localStorage.getItem(SHARED_KEY);
-    if (r) { const s = JSON.parse(r); if (s.date === TODAY) return s; }
-  } catch(e) {}
-  return { date: TODAY, academy: {} };
-}
-function saveShared(s) {
-  try { localStorage.setItem(SHARED_KEY, JSON.stringify(s)); } catch(e) {}
-}
-
-// Session transcripts
-function getSummaries() {
-  try { return JSON.parse(localStorage.getItem(SUMMARY_KEY)) || {}; } catch(e) { return {}; }
-}
-function saveSummary(subjectId, messages) {
-  const all = getSummaries();
-  if (!all[TODAY]) all[TODAY] = {};
-  all[TODAY][subjectId] = {
-    messages: messages.filter(m => m.role !== 'system').slice(-30), // save last 30, skip system msgs
-    completedAt: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-  };
-  try { localStorage.setItem(SUMMARY_KEY, JSON.stringify(all)); } catch(e) {}
-}
+function getSession() { return caldris.getSession(); }
+function saveSession(s) { return caldris.saveSession(s); }
+function getLevels() { return caldris.getLevels(); }
+function saveLevels(l) { return caldris.saveLevels(l); }
+function getShared() { return caldris.getShared(); }
+function saveShared(s) { return caldris.saveShared(s); }
+function getSummaries() { return caldris.getSummaries(); }
+function saveSummary(subjectId, messages) { return caldris.saveSummary(subjectId, messages); }
 
 // ══════════════════════════════════════════════════════
 // SETUP
@@ -689,10 +651,9 @@ function doSetup() {
   const name = document.getElementById('setup-name').value.trim();
   const pin  = document.getElementById('setup-pin').value.trim();
   if (!name) { alert('Please enter your name.'); return; }
-  if (pin.length < 4 || !/^\d+$/.test(pin)) { alert('PIN must be 4 digits.'); return; }
-  const s = getSession();
-  s.name = name; s.pin = pin; s.setupDone = true;
-  saveSession(s);
+  if (!/^\d{4}$/.test(pin)) { alert('PIN must be 4 digits.'); return; }
+  const result = caldris.completeSetup(name, pin);
+  if (!result.ok) { alert('Could not save setup. Please try again.'); return; }
   document.getElementById('setup-screen').style.display = 'none';
   showHub();
 }
@@ -806,8 +767,10 @@ function updateMicStatus(on) {
 
 // FIX: when user clicks the textarea to edit, stop recognition and set editing flag
 function setupInputHandlers() {
+  if (inputReady) return;
   const inp = document.getElementById('chat-in');
   if (!inp) return;
+  inputReady = true;
   inp.addEventListener('focus', () => {
     userEditing = true;
     if (isListening && recognition) {
@@ -879,14 +842,58 @@ IMPORTANT RULES:
 // ══════════════════════════════════════════════════════
 // API
 // ══════════════════════════════════════════════════════
+async function refreshHealth() {
+  const el = document.getElementById('hub-mode');
+  try {
+    const resp = await fetch('/api/health');
+    const data = await resp.json();
+    liveCaldris = !!data.live;
+  } catch (e) {
+    liveCaldris = false;
+  }
+  if (el) {
+    el.textContent = liveCaldris
+      ? 'Caldris is connected'
+      : "Today's prepared lessons are ready";
+  }
+}
+
 async function callCaldris(system, messages, model) {
   const resp = await fetch('/api/caldris', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system, messages, model: model || 'claude-sonnet-4-20250514', max_tokens: 900 })
+    body: JSON.stringify({ system, messages, model: model || CaldrisCore.DEFAULT_MODEL, max_tokens: 900 })
   });
-  if (!resp.ok) throw new Error('API error ' + resp.status);
+  if (!resp.ok) {
+    const err = new Error('API error ' + resp.status);
+    err.status = resp.status;
+    throw err;
+  }
   return resp.json();
+}
+
+function lastUserText() {
+  for (let i = chatHistory.length - 1; i >= 0; i--) {
+    if (chatHistory[i].role === 'user') return chatHistory[i].content;
+  }
+  return '';
+}
+
+function offlineReply(isOpening) {
+  const session = getSession();
+  const levels  = getLevels();
+  const level   = Math.min((levels[activeSubject.id] || 1), 5);
+  if (isOpening || !lessonState) {
+    lessonState = CaldrisLessons.startLesson(activeSubject.id, {
+      name: session.name || 'Matthew',
+      level: level,
+      today: TODAY
+    });
+    return { text: lessonState.lastText, complete: false };
+  }
+  const result = CaldrisLessons.nextTurn(lessonState, lastUserText());
+  lessonState = result.state;
+  return { text: result.text, complete: result.complete };
 }
 
 // ══════════════════════════════════════════════════════
@@ -898,7 +905,7 @@ function addMsg(role, text) {
   const el = document.createElement('div');
   el.className = 'msg ' + role;
   if (role === 'caldris') {
-    el.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+    el.innerHTML = CaldrisCore.formatCaldrisHtml(text);
   } else {
     el.textContent = text;
   }
@@ -935,29 +942,44 @@ async function doSend(isOpening) {
     ? [{ role: 'user', content: `Start today's ${activeSubject.name} session for ${session.name}. Level ${level}. Begin warmly and get started.` }]
     : [...chatHistory];
 
+  let rawText = '';
   try {
+    if (useOffline) throw new Error('offline');
     const data = await callCaldris(system, apiMessages, model);
-    const rawText = data.content?.map(c => c.text || '').join('\n').trim() || '...';
-    const isComplete = rawText.includes('[QUEST_COMPLETE]');
-    const displayText = rawText.replace(/\[QUEST_COMPLETE\]/g, '').trim();
-
-    removeTyping();
-    addMsg('caldris', displayText);
-    speak(displayText);
-
-    chatHistory = [...apiMessages, { role: 'assistant', content: rawText }];
-
-    if (isComplete) {
-      questDone = true;
-      document.getElementById('done-badge').className = 'done-badge show';
-      setTimeout(() => {
-        addMsg('system', '⚔️ Quest Complete! Well done, adventurer.');
-        onQuestComplete();
-      }, 1200);
+    rawText = data.content?.map(c => c.text || '').join('\n').trim() || '...';
+  } catch (e) {
+    if (isOpening || useOffline) {
+      useOffline = true;
+      const local = offlineReply(isOpening);
+      rawText = local.text || '...';
+      if (local.complete && rawText.indexOf('[QUEST_COMPLETE]') === -1) {
+        rawText += '\n[QUEST_COMPLETE]';
+      }
+    } else {
+      removeTyping();
+      addMsg('caldris', 'I lost the connection for a moment. Please send that answer again.');
+      busy = false;
+      document.getElementById('send-btn').disabled = false;
+      return;
     }
-  } catch(e) {
-    removeTyping();
-    addMsg('caldris', 'Something went wrong reaching the archive. Please try again in a moment.');
+  }
+
+  const isComplete = rawText.includes('[QUEST_COMPLETE]');
+  const displayText = rawText.replace(/\[QUEST_COMPLETE\]/g, '').trim();
+
+  removeTyping();
+  addMsg('caldris', displayText);
+  speak(displayText);
+
+  chatHistory = [...apiMessages, { role: 'assistant', content: rawText }];
+
+  if (isComplete) {
+    questDone = true;
+    document.getElementById('done-badge').className = 'done-badge show';
+    setTimeout(() => {
+      addMsg('system', 'Quest complete. Well done.');
+      onQuestComplete();
+    }, 1200);
   }
 
   busy = false;
@@ -978,35 +1000,11 @@ function handleSend() {
 }
 
 function onQuestComplete() {
-  // Save transcript for parent review
   saveSummary(activeSubject.id, chatMessages);
-
-  // Update session XP
-  const s = getSession();
-  if (!s.completed[activeSubject.id]) {
-    s.completed[activeSubject.id] = true;
-    s.xp = (s.xp || 0) + activeSubject.xp;
-    saveSession(s);
-  }
-
-  // Update levels (count sessions toward level-up)
-  const l = getLevels();
-  const sess = (l[activeSubject.id + '_sessions'] || 0) + 1;
-  l[activeSubject.id + '_sessions'] = sess;
-  const curLv = l[activeSubject.id] || 1;
-  if (sess % SESSIONS_PER_LEVEL === 0 && curLv < 5) {
-    l[activeSubject.id] = curLv + 1;
-  }
-  saveLevels(l);
-
-  // Update shared key for quest board sync
-  const shared = getShared();
-  if (!shared.academy) shared.academy = {};
-  if (activeSubject.qbLink) {
-    activeSubject.qbLink.forEach(id => { shared.academy[id] = true; });
-  }
-  shared.academy[activeSubject.id] = true;
-  saveShared(shared);
+  const next = CaldrisCore.applyQuestComplete(getSession(), getLevels(), getShared(), activeSubject);
+  saveSession(next.session);
+  saveLevels(next.levels);
+  saveShared(next.shared);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1022,9 +1020,11 @@ function showView(id) {
 function showHub() {
   stopSpeaking();
   activeSubject = null; chatHistory = []; chatMessages = []; questDone = false;
+  lessonState = null;
   renderHub();
   showView('hub-view');
   document.getElementById('mode-toggle').style.display = 'block';
+  refreshHealth();
 }
 
 function openSubject(subj) {
@@ -1036,6 +1036,8 @@ function openSubject(subj) {
   chatMessages  = [];
   questDone     = false;
   userEditing   = false;
+  useOffline    = !liveCaldris;
+  lessonState   = null;
 
   document.getElementById('chat-subj-label').textContent = subj.name;
   document.getElementById('chat-msgs').innerHTML = '';
@@ -1075,13 +1077,13 @@ function renderHub() {
   // XP
   const xp = s.xp || 0;
   const pct = Math.min((xp / TV_XP) * 100, 100);
-  document.getElementById('xp-display').textContent = xp + ' / 100 XP';
+  document.getElementById('xp-display').textContent = xp + ' / ' + TV_XP + ' XP';
   document.getElementById('xp-bar').style.width = pct + '%';
   document.getElementById('threshold-text').textContent = xp >= TV_XP ? 'XP threshold reached!' : `Earn ${TV_XP - xp} more XP to unlock screen time`;
 
   // TV status
-  const doneCount = SUBJECTS.filter(sub => s.completed?.[sub.id]).length;
-  const tvOn = xp >= TV_XP && doneCount >= 3;
+  const doneCount = CaldrisCore.completedCount(s);
+  const tvOn = CaldrisCore.tvUnlocked(s);
   const tvBanner = document.getElementById('tv-banner');
   tvBanner.className = 'tv-banner' + (tvOn ? ' unlocked' : '');
   document.getElementById('tv-icon').textContent = tvOn ? '📺✅' : '📺🔒';
@@ -1090,7 +1092,9 @@ function renderHub() {
   tvMain.className = 'tv-status-main' + (tvOn ? ' go' : '');
   document.getElementById('tv-status-sub').textContent = tvOn
     ? 'Gateway is open — great work today!'
-    : doneCount < 3 ? `Complete at least 3 subjects to unlock` : `Earn ${TV_XP - xp} more XP`;
+    : doneCount < CaldrisCore.MIN_SUBJECTS_FOR_TV
+      ? `Complete at least ${CaldrisCore.MIN_SUBJECTS_FOR_TV} subjects to unlock`
+      : `Earn ${TV_XP - xp} more XP`;
 
   // Subject cards
   const container = document.getElementById('subjects');
@@ -1129,8 +1133,8 @@ function renderParent() {
   document.getElementById('parent-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
 
   const xp = s.xp || 0;
-  const doneCount = SUBJECTS.filter(sub => s.completed?.[sub.id]).length;
-  const tvOn = xp >= TV_XP && doneCount >= 3;
+  const doneCount = CaldrisCore.completedCount(s);
+  const tvOn = CaldrisCore.tvUnlocked(s);
 
   document.getElementById('p-xp').textContent      = xp;
   document.getElementById('p-subjects').textContent = doneCount + '/5';
@@ -1170,7 +1174,7 @@ function renderParent() {
         if (!m || !m.role || m.role === 'system') return '';
         const who  = m.role === 'caldris' ? 'Caldris' : (s.name || 'Matthew');
         const css  = m.role === 'caldris' ? 'caldris-msg' : 'user-msg';
-        const text = (m.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const text = CaldrisCore.escapeHtml(m.text || '');
         return `<div class="transcript-msg ${css}"><div class="who">${who}</div><div class="what">${text}</div></div>`;
       }).filter(Boolean).join('');
       return `<div class="transcript-panel">
@@ -1212,19 +1216,7 @@ function toggleTranscript(header) {
 }
 
 function toggleParentQuest(id) {
-  const s = getSession();
-  if (!s.completed) s.completed = {};
-  const wasDone = !!s.completed[id];
-  if (!wasDone) {
-    const sub = SUBJECTS.find(x => x.id === id);
-    s.completed[id] = true;
-    s.xp = (s.xp || 0) + (sub ? sub.xp : 0);
-  } else {
-    delete s.completed[id];
-    const sub = SUBJECTS.find(x => x.id === id);
-    s.xp = Math.max(0, (s.xp || 0) - (sub ? sub.xp : 0));
-  }
-  saveSession(s);
+  saveSession(CaldrisCore.toggleQuest(getSession(), id));
   renderParent();
 }
 
@@ -1250,7 +1242,7 @@ function renderIncidents() {
   } else {
     list.innerHTML = incidents.map((inc, i) =>
       `<div class="incident-item">
-        <span style="color:var(--text2);font-size:12px;">${inc.time}</span> — ${inc.text}
+        <span style="color:var(--text2);font-size:12px;">${CaldrisCore.escapeHtml(inc.time)}</span> — ${CaldrisCore.escapeHtml(inc.text)}
         <span onclick="removeIncident(${i})" style="float:right;cursor:pointer;color:var(--text2);">✕</span>
       </div>`
     ).join('');
@@ -1265,15 +1257,10 @@ function removeIncident(i) {
 }
 
 function confirmReset() {
-  if (!confirm('Reset all data for a new day? This cannot be undone.')) return;
-  const s = getSession();
-  const pin = s.pin; const name = s.name;
-  const fresh = { date: TODAY, completed: {}, xp: 0, name, pin, setupDone: true, incidents: [] };
-  saveSession(fresh);
-  // Clear today's shared data
-  saveShared({ date: TODAY, academy: {} });
+  if (!confirm('Reset today\'s progress? Name and PIN stay saved. This cannot be undone.')) return;
+  caldris.resetDay();
   showHub();
-  toggleMode(); // back to student mode
+  toggleMode();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1303,8 +1290,9 @@ function showPinModal() {
 function cancelPin() { document.getElementById('pin-overlay').classList.remove('show'); }
 function confirmPin() {
   const entered = document.getElementById('pin-input').value.trim();
-  const s = getSession();
-  if (entered === s.pin) {
+  const profile = caldris.getProfile();
+  const pin = (profile && profile.pin) || getSession().pin;
+  if (entered === pin) {
     document.getElementById('pin-overlay').classList.remove('show');
     enterParentMode();
   } else {
@@ -1324,6 +1312,8 @@ function enterParentMode() {
 // BOOT
 // ══════════════════════════════════════════════════════
 function boot() {
+  setupInputHandlers();
+  refreshHealth();
   const s = getSession();
   if (!s.setupDone) {
     document.getElementById('setup-screen').style.display = 'flex';
