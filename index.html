@@ -84,6 +84,16 @@ body {
   50% { transform: scale(1.06); }
 }
 
+/* ── HERO / REALM IMAGERY ── */
+.hub-hero {
+  display: block;
+  width: 100%;
+  height: 170px;
+  object-fit: cover;
+  border-bottom: 1px solid var(--border);
+}
+.hub-hero.hidden { display: none; }
+
 /* ── TV BANNER ── */
 .tv-banner {
   margin: 16px;
@@ -152,6 +162,7 @@ body {
   display: flex; align-items: center; justify-content: center;
   font-size: 22px; flex-shrink: 0;
 }
+.subj-icon.has-img { background-size: cover; background-position: center; font-size: 0; }
 .subj-info { flex: 1; min-width: 0; }
 .subj-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); }
 .subj-desc { font-size: 13px; color: var(--text2); margin-top: 2px; }
@@ -478,6 +489,7 @@ body {
 
   <!-- HUB VIEW -->
   <div id="hub-view" class="view">
+    <img class="hub-hero hidden" id="hub-hero" alt="The Realm of Caldris" />
     <div class="app-header">
       <div class="app-header-eyebrow">The Realm of Caldris</div>
       <div class="caldris-orb" id="hub-orb">✦</div>
@@ -624,6 +636,49 @@ const SUBJECTS = [
   {id:'life',    name:'Life Skills',         desc:'Practical knowledge for the real world', icon:'⚔️', xp:20, color:'#9a7020', ibg:'rgba(154,112,32,.12)', model:'claude-opus-4-6',      qbLink:[]},
   {id:'pe',      name:'Physical Ed',         desc:'Movement quest — get outside',        icon:'🏃', xp:15, color:'#3d8a5c', ibg:'rgba(61,138,92,.12)',  model:'claude-sonnet-4-20250514', qbLink:[]},
 ];
+
+// ── ARTWORK ──
+// Generated images for the app. Leave a value as '' to fall back to the
+// default emoji/plain look. Drop new files into assets/images/ and point the
+// matching entry here — that's all it takes to add more art.
+const IMAGES = {
+  mainRealm: 'assets/images/realm-main.jpg',   // Hero banner at the top of the Quest Hub
+  caldris:   'assets/images/caldris.jpg',       // Caldris's portrait (hub + chat avatar)
+  sidekick:  '',                                // TODO: add sidekick art when provided
+  // Per-realm (subject) artwork, keyed by subject id.
+  realms: {
+    reading: '',
+    writing: '',
+    math:    '',
+    life:    '',
+    pe:      'assets/images/realm-campsite.jpg',
+  },
+};
+
+// Apply the Caldris portrait to an orb element (hub or chat avatar).
+function applyCaldrisAvatar() {
+  if (!IMAGES.caldris) return;
+  ['hub-orb', 'chat-orb'].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.backgroundImage = `url('${IMAGES.caldris}')`;
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  });
+}
+
+// Apply the hero banner on the Quest Hub.
+function applyHubHero() {
+  const hero = document.getElementById('hub-hero');
+  if (!hero) return;
+  if (IMAGES.mainRealm) {
+    hero.src = IMAGES.mainRealm;
+    hero.classList.remove('hidden');
+  } else {
+    hero.classList.add('hidden');
+  }
+}
 
 let activeSubject = null;
 let chatHistory   = [];   // API message history
@@ -1069,6 +1124,7 @@ function renderHub() {
   const levels = getLevels();
   const shared = getShared();
 
+  applyHubHero();
   document.getElementById('hub-name').textContent = s.name || 'Adventurer';
   document.getElementById('hub-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
 
@@ -1102,8 +1158,12 @@ function renderHub() {
     card.className = 'subject-card' + (done ? ' done' : '');
     card.style.cssText = `border-left: 3px solid ${subj.color}`;
     if (!done) card.onclick = () => openSubject(subj);
+    const realmImg = IMAGES.realms[subj.id];
+    const iconHtml = realmImg
+      ? `<div class="subj-icon has-img" style="background-image:url('${realmImg}');"></div>`
+      : `<div class="subj-icon" style="background:${subj.ibg};">${subj.icon}</div>`;
     card.innerHTML = `
-      <div class="subj-icon" style="background:${subj.ibg};">${subj.icon}</div>
+      ${iconHtml}
       <div class="subj-info">
         <div class="subj-name">${subj.name}</div>
         <div class="subj-desc">${subj.desc}</div>
@@ -1324,6 +1384,7 @@ function enterParentMode() {
 // BOOT
 // ══════════════════════════════════════════════════════
 function boot() {
+  applyCaldrisAvatar();
   const s = getSession();
   if (!s.setupDone) {
     document.getElementById('setup-screen').style.display = 'flex';
