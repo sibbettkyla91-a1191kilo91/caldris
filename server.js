@@ -134,7 +134,7 @@ async function handleCaldris(req, res) {
   }
 
   const payload = {
-    model: parsed.model || 'claude-sonnet-4-20250514',
+    model: parsed.model || 'claude-sonnet-5',
     max_tokens: parsed.max_tokens || 900,
     messages: Array.isArray(parsed.messages) ? parsed.messages : [],
   };

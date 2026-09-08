@@ -619,10 +619,10 @@ const SESSIONS_PER_LEVEL = 3;
 
 const SUBJECTS = [
   {id:'reading', name:'Reading',            desc:'Passage + comprehension with Caldris', icon:'📖', xp:25, color:'#4a7fa5', ibg:'rgba(74,127,165,.14)',  model:'claude-opus-4-6',      qbLink:['reading']},
-  {id:'writing', name:'Writing & Spelling', desc:'Spelling drill + writing prompt',      icon:'✍️', xp:25, color:'#7b5ea7', ibg:'rgba(123,94,167,.14)', model:'claude-sonnet-4-20250514', qbLink:['writing','math']},
-  {id:'math',    name:'Math',               desc:'Real-world problems with Caldris',     icon:'🔢', xp:25, color:'#2a8070', ibg:'rgba(42,128,112,.14)', model:'claude-sonnet-4-20250514', qbLink:['writing','math']},
+  {id:'writing', name:'Writing & Spelling', desc:'Spelling drill + writing prompt',      icon:'✍️', xp:25, color:'#7b5ea7', ibg:'rgba(123,94,167,.14)', model:'claude-sonnet-5', qbLink:['writing','math']},
+  {id:'math',    name:'Math',               desc:'Real-world problems with Caldris',     icon:'🔢', xp:25, color:'#2a8070', ibg:'rgba(42,128,112,.14)', model:'claude-sonnet-5', qbLink:['writing','math']},
   {id:'life',    name:'Life Skills',         desc:'Practical knowledge for the real world', icon:'⚔️', xp:20, color:'#9a7020', ibg:'rgba(154,112,32,.12)', model:'claude-opus-4-6',      qbLink:[]},
-  {id:'pe',      name:'Physical Ed',         desc:'Movement quest — get outside',        icon:'🏃', xp:15, color:'#3d8a5c', ibg:'rgba(61,138,92,.12)',  model:'claude-sonnet-4-20250514', qbLink:[]},
+  {id:'pe',      name:'Physical Ed',         desc:'Movement quest — get outside',        icon:'🏃', xp:15, color:'#3d8a5c', ibg:'rgba(61,138,92,.12)',  model:'claude-sonnet-5', qbLink:[]},
 ];
 
 let activeSubject = null;
@@ -883,7 +883,7 @@ async function callCaldris(system, messages, model) {
   const resp = await fetch('/api/caldris', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system, messages, model: model || 'claude-sonnet-4-20250514', max_tokens: 900 })
+    body: JSON.stringify({ system, messages, model: model || 'claude-sonnet-5', max_tokens: 900 })
   });
   if (!resp.ok) throw new Error('API error ' + resp.status);
   return resp.json();
