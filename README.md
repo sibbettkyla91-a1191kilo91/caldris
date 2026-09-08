@@ -21,6 +21,8 @@ node server.js
 
 If the key is missing, school still works. Caldris uses the prepared lesson path for that day (real questions, not a skip button). Add the key and restart the server when you want live Claude.
 
+The hub uses the Caldris main-page art, the Wild Realm camp, and Matthew's unnamed fish sidekick. Those files live in `assets/`.
+
 ## What was broken before
 
 - Chat called `/api/caldris`, but no server existed
