@@ -144,3 +144,31 @@ test('formatCaldrisHtml escapes markup before bold', function () {
   assert.equal(html.includes('<strong>bold</strong>'), true);
   assert.equal(html.includes('&lt;script&gt;'), true);
 });
+
+test('helped items award zero XP share and log an incident', function () {
+  const reading = core.subjectById('reading');
+  let session = core.emptyDay(TODAY, { name: 'Matthew', pin: '0000', setupDone: true });
+  const next = core.applyQuestComplete(session, {}, { academy: {} }, reading, {
+    subjectId: 'reading',
+    correct: 2,
+    helped: 1,
+    total: 3
+  });
+  assert.equal(next.session.xp, 17);
+  assert.equal(next.session.completed.reading, true);
+  assert.equal(next.session.incidents.length, 1);
+  assert.match(next.session.incidents[0].text, /completed with help/i);
+});
+
+test('a fully helped lesson awards no XP but still marks the subject done', function () {
+  const math = core.subjectById('math');
+  let session = core.emptyDay(TODAY, { name: 'Matthew', pin: '0000', setupDone: true });
+  const next = core.applyQuestComplete(session, {}, { academy: {} }, math, {
+    subjectId: 'math',
+    correct: 0,
+    helped: 4,
+    total: 4
+  });
+  assert.equal(next.session.xp, 0);
+  assert.equal(next.session.completed.math, true);
+});
