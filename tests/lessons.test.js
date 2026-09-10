@@ -104,6 +104,56 @@ test('PE waits until the student comes back', function () {
   assert.equal(early.complete, false);
   const back = lessons.nextTurn(early.state, 'done');
   assert.equal(back.complete, false);
-  const done = lessons.nextTurn(back.state, 'I did jumping jacks and a walk around the room. I feel good.');
+  const mood = lessons.nextTurn(back.state, 'I feel good');
+  assert.equal(mood.complete, false);
+  const done = lessons.nextTurn(mood.state, 'I did jumping jacks and a walk around the room. I feel good.');
   assert.equal(done.complete, true);
+});
+
+test('two wrong reading answers show the answer as help, not full credit', function () {
+  let state = lessons.startLesson('reading', { name: 'Matthew', seed: 'banana-slug-seed', level: 1 });
+  const first = lessons.nextTurn(state, 'zzzz not in the passage at all');
+  assert.equal(first.complete, false);
+  assert.match(first.text, /try again/i);
+  const second = lessons.nextTurn(first.state, 'zzzz still not a real answer here');
+  assert.equal(second.complete, false);
+  assert.match(second.text, /completed with help/i);
+  assert.equal(second.state.helped, 1);
+  assert.equal(second.state.correct, 0);
+});
+
+test('a single loose keyword does not count as a reading answer', function () {
+  let state = lessons.startLesson('reading', { name: 'Matthew', seed: 'banana-slug-seed', level: 1 });
+  if (!/banana slug/i.test(state.lastText)) return;
+  const loose = lessons.nextTurn(state, 'western');
+  assert.equal(loose.complete, false);
+  assert.equal(loose.state.step, 0);
+});
+
+test('writing does not mercy-complete on short text after two tries', function () {
+  function currentWord(text) {
+    const match = String(text).match(/Spell this word: \*\*([a-z]+)\*\*/);
+    return match && match[1];
+  }
+  let state = lessons.startLesson('writing', { name: 'Matthew', seed: 'set-a-force', level: 1 });
+  let prompt = state.lastText;
+  for (let i = 0; i < 5; i++) {
+    const word = currentWord(prompt);
+    const result = lessons.nextTurn(state, word);
+    state = result.state;
+    prompt = result.text;
+  }
+  const thin1 = lessons.nextTurn(state, 'I like park today now yes');
+  assert.equal(thin1.complete, false);
+  const thin2 = lessons.nextTurn(thin1.state, 'I like park today now yes');
+  assert.equal(thin2.complete, false);
+  assert.match(thin2.text, /cannot be skipped|3 complete sentences/i);
+});
+
+test('buildPack selects different content by level, not only by date', function () {
+  const low = lessons.buildPack('reading', 'same-day-seed', 1);
+  const high = lessons.buildPack('reading', 'same-day-seed', 5);
+  assert.equal(low.level, 1);
+  assert.equal(high.level, 5);
+  assert.notEqual(low.data.id, high.data.id);
 });
