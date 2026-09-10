@@ -18,6 +18,8 @@
   --accent:   #7b5ea7;
   --green:    #3d8a5c;
   --red:      #a03040;
+  --crimson:  #a03040;
+  --ivory:    #f3eee4;
   --radius:   12px;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -74,6 +76,9 @@ body {
   font-size: 26px;
   margin: 16px auto 8px;
   transition: box-shadow .3s;
+}
+.caldris-orb img {
+  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
 }
 .caldris-orb.speaking {
   box-shadow: 0 0 30px rgba(123,94,167,.9), 0 0 60px rgba(123,94,167,.4);
@@ -476,6 +481,116 @@ body {
 .acad-status { font-size: 16px; }
 .acad-name { flex: 1; color: var(--text); }
 .acad-level { font-size: 12px; color: var(--text2); }
+
+/* ── BASS BUDDY DOCK ── */
+.dock-banner {
+  margin: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  border: 1px solid var(--gold);
+  background: var(--bg2);
+  display: flex; align-items: center; gap: 12px;
+  cursor: pointer;
+}
+.dock-banner:hover { background: var(--bg3); }
+.dock-banner img {
+  width: 52px; height: 52px; border-radius: 50%;
+  object-fit: cover; border: 2px solid var(--gold);
+}
+.dock-banner-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold2); }
+.dock-banner-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
+.codex-link {
+  margin: 0 16px 16px;
+  display: block; text-align: center;
+  background: none; border: none; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 12px;
+  letter-spacing: 1px; color: var(--gold);
+}
+.dock-hero {
+  position: relative; min-height: 220px; overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.dock-hero img.dock-hero-art {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center 60%;
+}
+.dock-hero-shade {
+  position: absolute; inset: 0;
+  background: linear-gradient(180deg, rgba(8,10,16,.2), rgba(11,11,18,.92));
+}
+.dock-hero-copy { position: relative; z-index: 1; padding: 18px 20px; text-align: center; }
+.companion-label { font-size: 13px; color: var(--gold); letter-spacing: 1px; }
+.gear-row { display: flex; justify-content: center; gap: 10px; margin: 12px 16px 4px; }
+.gear-piece {
+  flex: 1; max-width: 110px; padding: 10px 8px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; text-align: center;
+}
+.gear-piece.on { border-color: var(--gold); }
+.gear-piece .g-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 1px; }
+.gear-piece .g-tier { font-size: 13px; color: var(--ivory); margin-top: 4px; }
+.gear-piece .g-graphic {
+  height: 36px; margin: 6px auto 4px;
+  display: flex; align-items: flex-end; justify-content: center;
+}
+.g-pole, .g-reel, .g-lure { background: #2a2a40; }
+.gear-piece.on .g-pole,
+.gear-piece.on .g-reel,
+.gear-piece.on .g-lure { background: linear-gradient(180deg, var(--gold2), var(--crimson)); }
+.g-pole { width: 6px; height: 32px; border-radius: 3px; transform: rotate(-18deg); }
+.g-reel { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #2a2a40; box-sizing: border-box; }
+.gear-piece.on .g-reel { border-color: var(--gold); }
+.g-lure { width: 14px; height: 22px; border-radius: 2px 2px 10px 10px; transform: rotate(20deg); }
+.dupe-hint { font-size: 13px; color: var(--text2); text-align: center; margin: 0 16px 8px; }
+.cast-panel { margin: 16px; text-align: center; }
+.cast-btn {
+  width: 100%; background: linear-gradient(135deg, var(--crimson), #6a2030);
+  color: var(--ivory); border: 1px solid var(--gold);
+  border-radius: 12px; padding: 16px;
+  font-family: 'Cinzel', serif; font-size: 18px; letter-spacing: 2px;
+  cursor: pointer;
+}
+.cast-btn:disabled { opacity: .4; cursor: default; }
+.cast-status { font-size: 14px; color: var(--text2); margin: 10px 0 0; }
+.cast-result {
+  margin: 16px; padding: 16px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); text-align: center; min-height: 120px;
+}
+.cast-result.hit { border-color: var(--gold); }
+.fish-art {
+  width: 120px; height: 80px; margin: 8px auto;
+  border-radius: 10px; background: #141228;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; border: 1px solid var(--border);
+}
+.fish-art img { width: 100%; height: 100%; object-fit: cover; }
+.fish-rarity {
+  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+}
+.fish-name { font-family: 'Cinzel', serif; font-size: 20px; color: var(--ivory); }
+.buddy-line { font-size: 15px; color: var(--text); font-style: italic; margin-top: 10px; line-height: 1.5; }
+.codex-grid { padding: 0 16px 24px; display: flex; flex-direction: column; gap: 8px; }
+.codex-row {
+  display: flex; align-items: center; gap: 12px;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px 12px;
+}
+.codex-row.locked { opacity: .45; }
+.codex-thumb {
+  width: 56px; height: 40px; border-radius: 8px;
+  background: #141228; overflow: hidden; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2); font-size: 12px;
+}
+.codex-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.codex-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); }
+.codex-meta { font-size: 12px; color: var(--text2); }
+.rarity-common { color: #c8c4bc; }
+.rarity-uncommon { color: #6aaa7a; }
+.rarity-rare { color: #7b9ed4; }
+.rarity-exotic { color: var(--gold2); }
 </style>
 </head>
 <body>
@@ -505,6 +620,15 @@ body {
       <div class="app-header-name" id="hub-name">Adventurer</div>
       <div class="app-header-date" id="hub-date"></div>
     </div>
+
+    <div class="dock-banner" id="dock-banner" onclick="openDock()">
+      <img src="assets/images/sidekick.png" alt="Bass Buddy">
+      <div class="tv-info">
+        <div class="dock-banner-title">Bass Buddy's Dock</div>
+        <div class="dock-banner-sub" id="dock-banner-sub">Finish a subject to earn a cast</div>
+      </div>
+    </div>
+    <button class="codex-link" onclick="openCodex()">Fish Codex</button>
 
     <div class="tv-banner" id="tv-banner">
       <div class="tv-icon" id="tv-icon">📺🔒</div>
@@ -604,6 +728,42 @@ body {
     <button class="reset-btn" onclick="confirmReset()">↺ Reset for New Day</button>
   </div>
 
+  <!-- DOCK VIEW -->
+  <div id="dock-view" class="view">
+    <div class="dock-hero">
+      <img class="dock-hero-art" src="assets/images/realm-campsite.jpg" alt="The dock on the river">
+      <div class="dock-hero-shade"></div>
+      <div class="dock-hero-copy">
+        <div class="app-header-eyebrow">Bass Buddy's Dock</div>
+        <div class="caldris-orb"><img src="assets/images/sidekick.png" alt="Bass Buddy"></div>
+        <div class="companion-label">Bass Buddy</div>
+        <div class="app-header-date" id="dock-cast-count">0 casts ready</div>
+      </div>
+    </div>
+    <div class="gear-row" id="gear-row"></div>
+    <div class="dupe-hint" id="dupe-hint"></div>
+    <div class="cast-panel">
+      <button class="cast-btn" id="cast-btn" onclick="doCast()">CAST</button>
+      <div class="cast-status" id="cast-status">Earn a cast by finishing a subject.</div>
+    </div>
+    <div class="cast-result" id="cast-result">
+      <div class="buddy-line">The water is waiting. I have opinions about this river.</div>
+    </div>
+    <button class="codex-link" onclick="openCodex()">Open the Codex</button>
+    <button class="reset-btn" onclick="showHub()">← Back to the Hub</button>
+  </div>
+
+  <!-- CODEX VIEW -->
+  <div id="codex-view" class="view">
+    <div class="p-header">
+      <div class="p-header-label">Bass Buddy</div>
+      <div class="p-header-title">Fish Codex</div>
+      <div class="p-header-date" id="codex-progress"></div>
+    </div>
+    <div class="codex-grid" id="codex-grid"></div>
+    <button class="reset-btn" onclick="showHub()">← Back to the Hub</button>
+  </div>
+
 </div>
 
 <!-- Mode toggle (bottom right) -->
@@ -624,11 +784,13 @@ body {
   </div>
 </div>
 
+<script src="lib/fishing.js"></script>
 <script>
 // ══════════════════════════════════════════════════════
 // CONSTANTS & STATE
 // ══════════════════════════════════════════════════════
 const TODAY        = new Date().toDateString();
+const fishing      = (window.CaldrisFishing && CaldrisFishing.create({ today: TODAY })) || null;
 const SHARED_KEY   = 'mq_ecosystem_v1';
 const LEVELS_KEY   = 'mq_levels_v1';
 const SESSION_KEY  = 'mq_acad_v3';
@@ -1221,11 +1383,141 @@ function onQuestComplete() {
   }
   shared.academy[activeSubject.id] = true;
   saveShared(shared);
+  if (fishing) fishing.awardCast(activeSubject.id);
 }
 
 // ══════════════════════════════════════════════════════
 // NAVIGATION
 // ══════════════════════════════════════════════════════
+function escapeFish(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function rarityLabel(rarity) {
+  return rarity === 'nothing' ? 'A quiet cast' : rarity;
+}
+
+function fishThumb(entry, caught) {
+  if (!caught) return '<div class="codex-thumb">?</div>';
+  return `<div class="codex-thumb"><img src="${entry.art}" alt="${escapeFish(entry.name)}" onerror="this.remove()"></div>`;
+}
+
+function renderGearRow() {
+  if (!fishing) return;
+  const gear = fishing.getGear();
+  const row = document.getElementById('gear-row');
+  if (!row) return;
+  const pieces = [
+    { key: 'pole', label: 'Pole', tier: gear.pole },
+    { key: 'reel', label: 'Reel', tier: gear.reel },
+    { key: 'lure', label: 'Lure', tier: gear.lure }
+  ];
+  row.innerHTML = pieces.map(p => `
+    <div class="gear-piece ${p.tier ? 'on' : ''}">
+      <div class="g-name">${p.label}</div>
+      <div class="g-graphic" title="${p.label} tier ${p.tier}"><div class="g-${p.key}"></div></div>
+      <div class="g-tier">${p.tier ? 'Tier ' + p.tier : 'Not yet'}</div>
+    </div>`).join('');
+}
+
+function renderDockBanner() {
+  const el = document.getElementById('dock-banner-sub');
+  const banner = document.getElementById('dock-banner');
+  if (!fishing) {
+    if (banner) banner.style.display = 'none';
+    const link = document.querySelector('.codex-link');
+    if (link) link.style.display = 'none';
+    return;
+  }
+  if (!el) return;
+  const n = fishing.getState().castsRemaining;
+  el.textContent = n
+    ? n + (n === 1 ? ' cast ready' : ' casts ready')
+    : 'Finish a subject to earn a cast';
+}
+
+function openDock() {
+  if (!fishing) return;
+  stopSpeaking();
+  renderDock();
+  showView('dock-view');
+}
+
+function renderDock() {
+  if (!fishing) return;
+  const state = fishing.getState();
+  const n = state.castsRemaining;
+  document.getElementById('dock-cast-count').textContent = n + (n === 1 ? ' cast ready' : ' casts ready');
+  document.getElementById('cast-status').textContent = n
+    ? 'Tap CAST. I already picked a lucky ripple.'
+    : 'Finish a subject today and I will hand you a cast.';
+  document.getElementById('cast-btn').disabled = n < 1;
+  const need = CaldrisFishing.DUPES_PER_GEAR;
+  const bank = state.duplicateBank;
+  const nextPiece = fishing.getGear().nextPiece;
+  document.getElementById('dupe-hint').textContent =
+    bank + ' / ' + need + ' duplicate fish toward the next ' + nextPiece + '. Gear is just for show.';
+  renderGearRow();
+}
+
+function showCastResult(result) {
+  const box = document.getElementById('cast-result');
+  if (!result.ok) {
+    box.className = 'cast-result';
+    box.innerHTML = '<div class="buddy-line">No casts left. Go finish a subject. I’ll wait. Dramatically.</div>';
+    return;
+  }
+  if (!result.caught) {
+    box.className = 'cast-result';
+    box.innerHTML = `<div class="fish-rarity">The water shrugged</div>
+      <div class="buddy-line">${escapeFish(result.line)}</div>`;
+    speak(result.line);
+    return;
+  }
+  const extra = result.newSpecies
+    ? 'New to the Codex.'
+    : 'Caught ×' + result.count + (result.gearGained ? ' — gear upgraded!' : '');
+  box.className = 'cast-result hit';
+  box.innerHTML = `<div class="fish-rarity rarity-${result.rarity}">${rarityLabel(result.rarity)}</div>
+    <div class="fish-art"><img src="${result.species.art}" alt="${escapeFish(result.species.name)}" onerror="this.style.display='none'"></div>
+    <div class="fish-name">${escapeFish(result.species.name)}</div>
+    <div class="codex-meta">${escapeFish(extra)}</div>
+    <div class="buddy-line">${escapeFish(result.line)}</div>`;
+  speak(result.line);
+}
+
+function doCast() {
+  if (!fishing) return;
+  const btn = document.getElementById('cast-btn');
+  if (btn.disabled || fishing.getState().castsRemaining < 1) return;
+  btn.disabled = true;
+  document.getElementById('cast-status').textContent = 'Line is out…';
+  document.getElementById('cast-result').className = 'cast-result';
+  document.getElementById('cast-result').innerHTML = '<div class="buddy-line">Wait for it. I am being mysterious on purpose.</div>';
+  const wait = 1000 + Math.floor(Math.random() * 1000);
+  setTimeout(() => {
+    showCastResult(fishing.cast());
+    renderDock();
+  }, wait);
+}
+
+function openCodex() {
+  if (!fishing) return;
+  stopSpeaking();
+  const entries = fishing.getCodex();
+  const caught = entries.filter(e => e.caught).length;
+  document.getElementById('codex-progress').textContent = caught + ' / ' + entries.length + ' species';
+  document.getElementById('codex-grid').innerHTML = entries.map(e => `
+    <div class="codex-row ${e.caught ? '' : 'locked'}">
+      ${fishThumb(e, e.caught)}
+      <div class="subj-info">
+        <div class="codex-name">${e.caught ? escapeFish(e.name) : 'Unknown fish'}</div>
+        <div class="codex-meta"><span class="rarity-${e.rarity}">${e.rarity}</span>${e.caught ? ' · ×' + e.count : ''}</div>
+      </div>
+    </div>`).join('');
+  showView('codex-view');
+}
+
 function showView(id) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   const el = document.getElementById(id);
@@ -1334,6 +1626,8 @@ function renderHub() {
       </div>`;
     container.appendChild(card);
   });
+
+  renderDockBanner();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1444,6 +1738,7 @@ function toggleParentQuest(id) {
     s.xp = Math.max(0, (s.xp || 0) - (sub ? sub.xp : 0));
   }
   saveSession(s);
+  if (fishing && !wasDone) fishing.awardCast(id);
   renderParent();
 }
 
@@ -1491,6 +1786,7 @@ function confirmReset() {
   saveSession(fresh);
   // Clear today's shared data
   saveShared({ date: TODAY, academy: {} });
+  if (fishing) fishing.resetDaily();
   showHub();
   toggleMode(); // back to student mode
 }
