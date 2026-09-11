@@ -1804,14 +1804,16 @@ function renderIncidents(incidentsOverride) {
     list.innerHTML = incidents.map((inc, i) =>
       `<div class="incident-item">
         <span style="color:var(--text2);font-size:12px;">${inc.time}</span> — ${inc.text}
-        <span onclick="removeIncident(${i})" style="float:right;cursor:pointer;color:var(--text2);">✕</span>
+        ${parentViewDate === TODAY ? `<span onclick="removeIncident(${i})" style="float:right;cursor:pointer;color:var(--text2);">✕</span>` : ''}
       </div>`
     ).join('');
   }
 }
 
 function removeIncident(i) {
+  if (parentViewDate !== TODAY) return;
   const s = getSession();
+  if (!s.incidents) return;
   s.incidents.splice(i, 1);
   saveSession(s);
   renderIncidents();
