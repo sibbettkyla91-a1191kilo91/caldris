@@ -308,6 +308,25 @@ body {
 .p-header-label { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; }
 .p-header-title { font-family: 'Cinzel', serif; font-size: 22px; color: var(--gold2); margin-top: 4px; }
 .p-header-date { font-size: 13px; color: var(--text2); margin-top: 4px; }
+.date-nav {
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  margin-top: 10px;
+}
+.date-nav-btn {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--bg3); border: 1px solid var(--border);
+  color: var(--gold2); font-size: 20px; line-height: 1;
+  cursor: pointer;
+}
+.date-nav-btn:disabled { opacity: .35; cursor: default; }
+.date-nav-label { min-width: 190px; text-align: center; }
+.yesterday-banner {
+  margin: 16px 16px 0;
+  background: rgba(200,168,75,.1); border: 1px solid rgba(200,168,75,.35);
+  border-radius: var(--radius); padding: 12px 14px;
+  color: var(--gold2); font-size: 15px; cursor: pointer; line-height: 1.45;
+}
+.yesterday-banner[hidden] { display: none; }
 
 .summary-box {
   display: flex; justify-content: space-around;
@@ -679,9 +698,15 @@ body {
   <div id="parent-view" class="view">
     <div class="p-header">
       <div class="p-header-label">Parent Dashboard</div>
-      <div class="p-header-title">Today's Report</div>
-      <div class="p-header-date" id="parent-date"></div>
+      <div class="p-header-title" id="parent-title">Today's Report</div>
+      <div class="date-nav">
+        <button type="button" class="date-nav-btn" id="parent-prev-day" onclick="shiftParentDay(-1)" aria-label="Previous day">‹</button>
+        <div class="p-header-date date-nav-label" id="parent-date"></div>
+        <button type="button" class="date-nav-btn" id="parent-next-day" onclick="shiftParentDay(1)" aria-label="Next day">›</button>
+      </div>
     </div>
+
+    <div class="yesterday-banner" id="yesterday-banner" hidden onclick="openYesterdayReport()"></div>
 
     <div class="summary-box">
       <div><div class="summary-stat-value" id="p-xp">0</div><div class="summary-stat-label">XP Earned</div></div>
@@ -704,12 +729,12 @@ body {
 
     <!-- Session transcripts -->
     <div class="parent-section">
-      <div class="section-title">Today's Session Transcripts</div>
+      <div class="section-title" id="transcript-section-title">Today's Session Transcripts</div>
       <div id="transcript-list"></div>
     </div>
 
     <!-- Quest controls -->
-    <div class="parent-section">
+    <div class="parent-section" id="parent-quest-section">
       <div class="section-title">Quest Controls</div>
       <div id="parent-quest-list"></div>
     </div>
@@ -717,15 +742,15 @@ body {
     <!-- Incident log -->
     <div class="parent-section">
       <div class="section-title">Incident Log</div>
-      <div class="incident-input-row">
+      <div class="incident-input-row" id="incident-input-row">
         <input class="incident-input" id="incident-input" placeholder="What happened?" />
         <button class="add-btn" onclick="addIncident()">Log It</button>
       </div>
       <div id="incident-list"></div>
     </div>
 
-    <div class="note-box">TV is earned fresh each day — not taken away forever.<br>Tomorrow is always a clean slate.</div>
-    <button class="reset-btn" onclick="confirmReset()">↺ Reset for New Day</button>
+    <div class="note-box" id="parent-note-box">TV is earned fresh each day — not taken away forever.<br>Tomorrow is always a clean slate.</div>
+    <button class="reset-btn" id="parent-reset-btn" onclick="confirmReset()">↺ Reset for New Day</button>
   </div>
 
   <!-- DOCK VIEW -->
@@ -785,6 +810,7 @@ body {
 </div>
 
 <script src="lib/fishing.js"></script>
+<script src="lib/progress.js"></script>
 <script>
 // ══════════════════════════════════════════════════════
 // CONSTANTS & STATE
@@ -872,6 +898,8 @@ function applyHubHero() {
   }
 }
 
+const progress = (window.CaldrisProgress && CaldrisProgress.create({ today: TODAY, subjects: SUBJECTS })) || null;
+
 let activeSubject = null;
 let chatHistory   = [];   // API message history
 let chatMessages  = [];   // Display messages
@@ -882,55 +910,25 @@ let recognition   = null;
 let isListening   = false;
 let userEditing   = false;  // FIX: prevents mic from overwriting user edits
 let questDone     = false;
+let parentViewDate = TODAY;
 
 // ══════════════════════════════════════════════════════
 // STORAGE
 // ══════════════════════════════════════════════════════
 function getSession() {
-  // Daily fields (completed/xp/incidents) come from the date-gated session and
-  // reset every calendar day. Name/PIN/setupDone are ALWAYS overlaid from the
-  // persistent profile so they survive the daily reset.
-  let s = null;
-  try {
-    const r = localStorage.getItem(SESSION_KEY);
-    if (r) { const parsed = JSON.parse(r); if (parsed.date === TODAY) s = parsed; }
-  } catch(e) {}
-  if (!s) s = { date: TODAY, completed: {}, xp: 0 };
-  const p = getProfile();
-  s.name = p.name; s.pin = p.pin; s.setupDone = p.setupDone;
-  return s;
+  return progress.getSession();
 }
 function saveSession(s) {
-  try { localStorage.setItem(SESSION_KEY, JSON.stringify(s)); } catch(e) {}
+  progress.saveSession(s);
 }
 
 // Persistent profile: child name + parent PIN + setup flag. Unlike the daily
 // session this is NOT date-gated, so it carries over from day to day.
 function getProfile() {
-  try {
-    const r = localStorage.getItem(PROFILE_KEY);
-    if (r) {
-      const p = JSON.parse(r);
-      if (p) return { name: p.name || '', pin: p.pin || '', setupDone: !!p.setupDone };
-    }
-  } catch(e) {}
-  // One-time migration for returning users who set up before this fix: their
-  // name/PIN live only in the old session, so lift them into the profile.
-  try {
-    const r = localStorage.getItem(SESSION_KEY);
-    if (r) {
-      const s = JSON.parse(r);
-      if (s && (s.name || s.pin)) {
-        const p = { name: s.name || '', pin: s.pin || '', setupDone: !!s.setupDone };
-        saveProfile(p);
-        return p;
-      }
-    }
-  } catch(e) {}
-  return { name: '', pin: '', setupDone: false };
+  return progress.getProfile();
 }
 function saveProfile(p) {
-  try { localStorage.setItem(PROFILE_KEY, JSON.stringify(p)); } catch(e) {}
+  progress.saveProfile(p);
 }
 
 function getLevels() {
@@ -989,16 +987,10 @@ function saveShared(s) {
 
 // Session transcripts
 function getSummaries() {
-  try { return JSON.parse(localStorage.getItem(SUMMARY_KEY)) || {}; } catch(e) { return {}; }
+  return progress.getSummaries();
 }
 function saveSummary(subjectId, messages) {
-  const all = getSummaries();
-  if (!all[TODAY]) all[TODAY] = {};
-  all[TODAY][subjectId] = {
-    messages: messages.filter(m => m.role !== 'system').slice(-30), // save last 30, skip system msgs
-    completedAt: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})
-  };
-  try { localStorage.setItem(SUMMARY_KEY, JSON.stringify(all)); } catch(e) {}
+  progress.saveSummary(subjectId, messages);
 }
 
 // ══════════════════════════════════════════════════════
@@ -1633,16 +1625,41 @@ function renderHub() {
 // ══════════════════════════════════════════════════════
 // RENDER PARENT DASHBOARD
 // ══════════════════════════════════════════════════════
+function shiftParentDay(delta) {
+  const next = progress.neighborDate(parentViewDate, delta);
+  if (!next) return;
+  parentViewDate = next;
+  renderParent();
+}
+
+function openYesterdayReport() {
+  parentViewDate = progress.yesterdayDate();
+  renderParent();
+}
+
 function renderParent() {
   const s        = getSession();
   const levels   = getLevels();
-  const summaries = getSummaries();
-  const todaySummaries = summaries[TODAY] || {};
+  const report   = progress.getDayReport(parentViewDate);
+  const isToday  = !!report.isToday;
+  const daySummaries = report.summaries || {};
+  const whoName  = report.name || s.name || 'Matthew';
 
-  document.getElementById('parent-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
+  document.getElementById('parent-title').textContent = isToday ? "Today's Report" : 'Daily Report';
+  document.getElementById('parent-date').textContent = progress.formatReportDate(parentViewDate);
+  document.getElementById('parent-prev-day').disabled = !progress.neighborDate(parentViewDate, -1);
+  document.getElementById('parent-next-day').disabled = !progress.neighborDate(parentViewDate, 1);
 
-  const xp = s.xp || 0;
-  const doneCount = SUBJECTS.filter(sub => s.completed?.[sub.id]).length;
+  const banner = document.getElementById('yesterday-banner');
+  const yesterday = progress.yesterdayDate();
+  const showYesterdayNudge = isToday && !progress.hasReport(TODAY) && progress.hasReport(yesterday);
+  banner.hidden = !showYesterdayNudge;
+  banner.textContent = showYesterdayNudge
+    ? `${whoName} has a report from yesterday. Tap here to see it.`
+    : '';
+
+  const xp = report.xp || 0;
+  const doneCount = SUBJECTS.filter(sub => report.completed?.[sub.id]).length;
   const tvOn = xp >= TV_XP && doneCount >= 3;
 
   document.getElementById('p-xp').textContent      = xp;
@@ -1650,17 +1667,25 @@ function renderParent() {
   document.getElementById('p-tv').textContent       = tvOn ? '🟢' : '🔴';
 
   // Allen snapshot
-  const remaining = SUBJECTS.filter(sub => !s.completed?.[sub.id]).map(s=>s.name);
+  const remaining = SUBJECTS.filter(sub => !report.completed?.[sub.id]).map(sub => sub.name);
   let statusMsg = '';
-  if (doneCount === 0) statusMsg = `${s.name || 'Matthew'} hasn't started any subjects yet today.`;
-  else if (doneCount === 5) statusMsg = `${s.name || 'Matthew'} completed all 5 subjects today — ${xp} XP earned. ${tvOn ? 'Screen time is unlocked.' : 'Keep up the consistency!'}`;
-  else statusMsg = `${doneCount} of 5 subjects done. Still needed: ${remaining.join(', ')}.`;
+  if (doneCount === 0) {
+    statusMsg = isToday
+      ? `${whoName} hasn't started any subjects yet today.`
+      : `No recorded subjects for ${whoName} on this day.`;
+  } else if (doneCount === 5) {
+    statusMsg = `${whoName} completed all 5 subjects${isToday ? ' today' : ''} — ${xp} XP earned. ${tvOn ? 'Screen time is unlocked.' : 'Keep up the consistency!'}`;
+  } else {
+    statusMsg = isToday
+      ? `${doneCount} of 5 subjects done. Still needed: ${remaining.join(', ')}.`
+      : `${doneCount} of 5 subjects done on this day. Not finished: ${remaining.join(', ')}.`;
+  }
   document.getElementById('allen-status').textContent = statusMsg;
 
   // Academy subject list
   const acadList = document.getElementById('academy-subject-list');
   acadList.innerHTML = SUBJECTS.map(sub => {
-    const done  = !!(s.completed?.[sub.id]);
+    const done  = !!(report.completed?.[sub.id]);
     const grade = getGrade(sub.id, levels);
     return `<div class="acad-item">
       <span class="acad-status">${done ? '✅' : '⬜'}</span>
@@ -1671,17 +1696,22 @@ function renderParent() {
   }).join('');
 
   // Session transcripts
+  document.getElementById('transcript-section-title').textContent = isToday
+    ? "Today's Session Transcripts"
+    : 'Session Transcripts';
   const transcriptList = document.getElementById('transcript-list');
-  const completedSubs = SUBJECTS.filter(sub => todaySummaries[sub.id]);
+  const completedSubs = SUBJECTS.filter(sub => daySummaries[sub.id]);
   if (completedSubs.length === 0) {
-    transcriptList.innerHTML = '<p style="color:var(--text2);font-size:14px;padding:8px 0;">No sessions completed yet today.</p>';
+    transcriptList.innerHTML = `<p style="color:var(--text2);font-size:14px;padding:8px 0;">${
+      isToday ? 'No sessions completed yet today.' : 'No sessions recorded on this day.'
+    }</p>`;
   } else {
     transcriptList.innerHTML = completedSubs.map(sub => {
-      const sum = todaySummaries[sub.id];
+      const sum = daySummaries[sub.id];
       const msgs = sum.messages || [];
       const msgHtml = msgs.map(m => {
         if (!m || !m.role || m.role === 'system') return '';
-        const who  = m.role === 'caldris' ? 'Caldris' : (s.name || 'Matthew');
+        const who  = m.role === 'caldris' ? 'Caldris' : whoName;
         const css  = m.role === 'caldris' ? 'caldris-msg' : 'user-msg';
         const text = (m.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         return `<div class="transcript-msg ${css}"><div class="who">${who}</div><div class="what">${text}</div></div>`;
@@ -1699,21 +1729,28 @@ function renderParent() {
     }).join('');
   }
 
-  // Quest controls (manual override)
+  // Quest controls stay on today only — past days are a report, not a control panel.
+  const questSection = document.getElementById('parent-quest-section');
+  if (questSection) questSection.style.display = isToday ? '' : 'none';
   const pql = document.getElementById('parent-quest-list');
-  pql.innerHTML = SUBJECTS.map(sub => {
-    const done = !!(s.completed?.[sub.id]);
-    return `<div class="parent-quest-item">
-      <span style="font-size:18px;">${sub.icon}</span>
-      <span class="parent-quest-name">${sub.name}</span>
-      <div class="parent-quest-check ${done ? 'done' : ''}" onclick="toggleParentQuest('${sub.id}')">
-        ${done ? '✓' : ''}
-      </div>
-    </div>`;
-  }).join('');
+  if (isToday) {
+    pql.innerHTML = SUBJECTS.map(sub => {
+      const done = !!(report.completed?.[sub.id]);
+      return `<div class="parent-quest-item">
+        <span style="font-size:18px;">${sub.icon}</span>
+        <span class="parent-quest-name">${sub.name}</span>
+        <div class="parent-quest-check ${done ? 'done' : ''}" onclick="toggleParentQuest('${sub.id}')">
+          ${done ? '✓' : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
 
-  // Incidents
-  renderIncidents();
+  document.getElementById('incident-input-row').style.display = isToday ? '' : 'none';
+  document.getElementById('parent-note-box').style.display = isToday ? '' : 'none';
+  document.getElementById('parent-reset-btn').style.display = isToday ? '' : 'none';
+
+  renderIncidents(report.incidents || []);
 }
 
 function toggleTranscript(header) {
@@ -1754,13 +1791,15 @@ function addIncident() {
   renderIncidents();
 }
 
-function renderIncidents() {
+function renderIncidents(incidentsOverride) {
   const s = getSession();
   const list = document.getElementById('incident-list');
   if (!list) return;
-  const incidents = s.incidents || [];
+  const incidents = incidentsOverride || s.incidents || [];
   if (incidents.length === 0) {
-    list.innerHTML = '<p style="color:var(--text2);font-size:14px;padding:4px 0;">No incidents logged today.</p>';
+    list.innerHTML = `<p style="color:var(--text2);font-size:14px;padding:4px 0;">${
+      parentViewDate === TODAY ? 'No incidents logged today.' : 'No incidents logged on this day.'
+    }</p>`;
   } else {
     list.innerHTML = incidents.map((inc, i) =>
       `<div class="incident-item">
@@ -1829,6 +1868,7 @@ function confirmPin() {
 }
 function enterParentMode() {
   inParentMode = true;
+  parentViewDate = TODAY;
   document.getElementById('mode-toggle').textContent = '← Back to Quest Hub';
   renderParent();
   showView('parent-view');
