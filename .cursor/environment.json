@@ -7,5 +7,10 @@
       "command": "node server.js"
     }
   ],
-  "ports": [3000]
+  "ports": [
+    {
+      "name": "caldris",
+      "port": 3000
+    }
+  ]
 }
