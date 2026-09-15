@@ -198,12 +198,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   cursor: pointer; position: relative; min-height: 76px;
   transition: border-color .2s, background .2s, transform .2s;
 }
-.subject-card.ready { animation: marker-bounce 1.8s ease-in-out infinite; }
+.subject-card.ready { animation: marker-glow 1.8s ease-in-out infinite; }
 .subject-card.done { border-color: var(--green); opacity: .88; cursor: default; animation: none; }
 .subject-card:active:not(.done) { transform: scale(.99); }
-@keyframes marker-bounce {
-  0%,100% { transform: translateY(0); }
-  50% { transform: translateY(-3px); }
+@keyframes marker-glow {
+  0%,100% { box-shadow: 0 0 0 0 rgba(200,168,75,0); }
+  50% { box-shadow: 0 0 14px rgba(200,168,75,.4); }
 }
 .subj-icon {
   width: 44px; height: 44px; border-radius: 10px;
@@ -264,7 +264,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible {
   min-width: 72px; min-height: 44px; padding: 6px 8px;
   border-radius: 999px; border: 2px solid var(--gold); background: rgba(11,11,18,.78);
   color: var(--ivory); font-size: 12px; cursor: pointer;
-  animation: marker-bounce 1.6s ease-in-out infinite;
+  animation: marker-glow 1.6s ease-in-out infinite;
 }
 .move-btn { width: 100%; text-align: center; background: linear-gradient(135deg, var(--green), #2a6040); border: none; font-family: 'Cinzel', serif; }
 .fish-arena {
