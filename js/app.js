@@ -41,6 +41,7 @@
   var practiceMode = false;
   var claudeSeq = 0;
   var finishTimer = null;
+  var voiceGestureDone = false;
 
   function $(id) { return document.getElementById(id); }
   function escapeHtml(s) {
@@ -56,7 +57,7 @@
     SpeechSynthesisUtterance: window.SpeechSynthesisUtterance || null,
     onState: function (state) { syncSpeaker(state); },
     onTalking: function (on) { setGuideMood(on ? 'talking' : ''); },
-    onBlocked: function () { showTapToHear(true); }
+    onBlocked: function () { showTapToHear(!voiceGestureDone); }
   }) : null;
 
   function getLevels() {
@@ -99,7 +100,12 @@
 
   function showTapToHear(on) {
     var el = $('tap-to-hear');
-    if (el) el.hidden = !on;
+    if (!el) return;
+    if (on && voiceGestureDone) {
+      el.hidden = true;
+      return;
+    }
+    el.hidden = !on;
   }
 
   function sfx(kind) {
@@ -162,6 +168,7 @@
   function enableSound() {
     settings.soundEnabled = true;
     settings.ttsEnabled = true;
+    voiceGestureDone = true;
     persistSettings();
     showTapToHear(false);
     if (voice) voice.enable();
@@ -577,6 +584,10 @@
       refreshParentApiStatus();
       if (!result || !result.ok || !result.text) {
         showPractice(true);
+        if (reason === 'user-question' && extraUserText && Teacher.practiceReply) {
+          setTeacherLine(Teacher.practiceReply(extraUserText, activeQuest), 'queue', true);
+          persistQuest();
+        }
         return null;
       }
       showPractice(false);
@@ -633,18 +644,19 @@
       attempts = 0;
       usingScaffold = false;
       var line = pick(LINES.correct) || 'Yes! That is it.';
-      setTeacherLine(line, 'queue', true);
       $('sidekick-line').textContent = 'Yes! I felt that one.';
       setGuideMood('celebrating');
       sfx('complete');
       beatIndex += 1;
       persistQuest();
       if (beatIndex >= activeQuest.beats.length) {
+        setTeacherLine(line, 'queue', true);
         finishQuest();
       } else {
         renderBeat();
         var next = currentBeat();
-        if (next && next.prompt) speakTeacher(next.prompt, 'queue');
+        var combined = line + (next && next.prompt ? ' ' + next.prompt : '');
+        setTeacherLine(combined, 'queue', true);
       }
       return;
     }
@@ -1063,6 +1075,7 @@
     $('setup-btn').addEventListener('click', doSetup);
     $('enable-sound-btn').addEventListener('click', enableSound);
     $('tap-to-hear-btn').addEventListener('click', function () {
+      voiceGestureDone = true;
       if (!settings.ttsEnabled) enableSound();
       else replayTeacher();
       showTapToHear(false);

@@ -107,6 +107,19 @@ test('callCaldris records ok and returns the full teacher text', async function 
   assert.equal(teacher.getLastApiStatus().status, 'ok');
 });
 
+test('practice reply answers why and off-topic then steers back', function () {
+  const quest = {
+    teach: 'When we add, we start at the first number and count on.',
+    objective: 'Add two small numbers by counting on.'
+  };
+  const why = teacher.practiceReply('why do we count on?', quest);
+  assert.match(why, /count on/i);
+  assert.match(why, /try/i);
+  const tv = teacher.practiceReply('can I watch TV', quest);
+  assert.match(tv, /stamp/i);
+  assert.match(tv, /count on/i);
+});
+
 test('looksLikeQuestion lets Matthew talk without a quiz answer', function () {
   assert.equal(teacher.looksLikeQuestion('why did the fox hide?'), true);
   assert.equal(teacher.looksLikeQuestion('Can I watch TV'), true);
