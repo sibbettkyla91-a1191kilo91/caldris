@@ -42,7 +42,9 @@ test('a new day archives yesterday and starts a fresh session', function () {
   assert.deepEqual(session.completed, {});
   assert.equal(session.xp, 0);
   assert.equal(session.name, 'Matthew');
-  assert.equal(session.pin, '2468');
+  assert.equal(session.pin, undefined);
+  assert.ok(acad.verifyPin('2468'));
+  assert.ok(progress.isHashedPin(acad.getProfile().pin));
 
   const archived = acad.getHistory()[YESTERDAY];
   assert.ok(archived);
@@ -72,9 +74,11 @@ test('profile name and PIN migrate off a stale session before rollover', functio
   const session = acad.getSession();
   const profile = acad.getProfile();
   assert.equal(profile.name, 'Matthew');
-  assert.equal(profile.pin, '1357');
+  assert.ok(acad.verifyPin('1357'));
+  assert.ok(progress.isHashedPin(profile.pin));
+  assert.notEqual(profile.pin, '1357');
   assert.equal(session.name, 'Matthew');
-  assert.equal(session.pin, '1357');
+  assert.equal(session.pin, undefined);
   assert.equal(acad.getHistory()[YESTERDAY].xp, 15);
 });
 
@@ -179,4 +183,98 @@ test('saveSummary stores transcripts under today without wiping other days', fun
   assert.ok(all[YESTERDAY].pe);
   assert.equal(all[TODAY].reading.completedAt, '9:15 AM');
   assert.equal(all[TODAY].reading.messages.length, 2);
+});
+
+test('completing a subject adds XP up to the daily cap', function () {
+  const acad = app();
+  acad.saveProfile({ name: 'Matthew', pin: '2468', setupDone: true });
+  const first = acad.completeSubject('reading');
+  assert.equal(first.awarded, true);
+  assert.equal(first.xp, 25);
+  assert.equal(acad.completeSubject('reading').awarded, false);
+  acad.completeSubject('writing');
+  acad.completeSubject('math');
+  acad.completeSubject('life');
+  acad.completeSubject('pe');
+  assert.equal(acad.getSession().xp, acad.dailyXpCap());
+  assert.equal(acad.dailyXpCap(), 110);
+});
+
+test('screen time unlocks only when all required quests are done', function () {
+  const acad = app();
+  acad.saveProfile({ name: 'Matthew', pin: '2468', setupDone: true });
+  acad.completeSubject('reading');
+  acad.completeSubject('writing');
+  acad.completeSubject('math');
+  const s = acad.getSession();
+  s.xp = 200;
+  acad.saveSession(s);
+  assert.equal(acad.isTvUnlocked(), false);
+  acad.completeSubject('life');
+  acad.completeSubject('pe');
+  assert.equal(acad.isTvUnlocked(), true);
+  assert.equal(acad.countDone(), 5);
+});
+
+test('parent override can unlock or re-lock TV and writes the incident log', function () {
+  const acad = app();
+  acad.saveProfile({ name: 'Matthew', pin: '2468', setupDone: true });
+  assert.equal(acad.isTvUnlocked(), false);
+  acad.setTvForce('unlock', 'Parent unlocked TV today (override).');
+  assert.equal(acad.isTvUnlocked(), true);
+  assert.equal(acad.getSession().incidents.length, 1);
+  acad.setTvForce('lock', 'Parent re-locked TV.');
+  assert.equal(acad.isTvUnlocked(), false);
+  assert.equal(acad.getSession().incidents.length, 2);
+});
+
+test('reset for a new day clears child progress and re-locks TV', function () {
+  const acad = app();
+  acad.saveProfile({ name: 'Matthew', pin: '2468', setupDone: true });
+  acad.completeSubject('reading');
+  acad.completeSubject('writing');
+  acad.completeSubject('math');
+  acad.completeSubject('life');
+  acad.completeSubject('pe');
+  acad.addIncident('Needed a stretch break');
+  assert.equal(acad.isTvUnlocked(), true);
+  assert.equal(acad.getProfile().streak, 1);
+
+  const after = acad.resetDay();
+  assert.deepEqual(after.completed, {});
+  assert.equal(after.xp, 0);
+  assert.equal(after.tvForce, null);
+  assert.equal(acad.isTvUnlocked(), false);
+  assert.equal(acad.verifyPin('2468'), true);
+  assert.equal(acad.getProfile().name, 'Matthew');
+  assert.equal(acad.getSession().incidents.length, 1);
+  assert.equal(acad.getProfile().streak, 0);
+});
+
+test('mid-quest beat progress is saved and does not complete the subject', function () {
+  const acad = app();
+  acad.saveQuestState('math', { beatIndex: 2, attempts: 1, log: [{ role: 'user', text: '5' }] });
+  const state = acad.getQuestState('math');
+  assert.equal(state.beatIndex, 2);
+  assert.equal(acad.getSession().completed.math, undefined);
+  assert.equal(acad.isTvUnlocked(), false);
+});
+
+test('PIN stays hashed and a wrong PIN does not match', function () {
+  const acad = app();
+  acad.saveProfile({ name: 'Matthew', pin: '2468', setupDone: true });
+  assert.ok(progress.isHashedPin(acad.getProfile().pin));
+  assert.equal(acad.verifyPin('2468'), true);
+  assert.equal(acad.verifyPin('0000'), false);
+  assert.equal(acad.changePin('0000', '1357').ok, false);
+  assert.equal(acad.changePin('2468', '1357').ok, true);
+  assert.equal(acad.verifyPin('1357'), true);
+  assert.equal(acad.verifyPin('2468'), false);
+});
+
+test('rank titles follow streak, not XP', function () {
+  assert.equal(progress.rankForStreak(0).title, 'Adventurer');
+  assert.equal(progress.rankForStreak(3).title, 'Pathfinder');
+  assert.equal(progress.rankForStreak(7).title, 'Realm Keeper');
+  assert.equal(progress.rankForStreak(14).title, 'Star Warden');
 });
