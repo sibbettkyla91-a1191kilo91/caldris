@@ -5,6 +5,8 @@
   var SUBJECTS = (window.CaldrisQuests && CaldrisQuests.SUBJECTS) || [];
   var progress = window.CaldrisProgress && CaldrisProgress.create({ today: TODAY, subjects: SUBJECTS });
   var fishing = window.CaldrisFishing && CaldrisFishing.create({ today: TODAY });
+  var Teacher = window.CaldrisTeacher || {};
+  var VoiceLib = window.CaldrisVoice || {};
   var IMAGES = {
     mainRealm: 'assets/images/realm-main.jpg',
     campsite: 'assets/images/realm-campsite.jpg',
@@ -14,9 +16,9 @@
   };
   var LEVELS_KEY = 'mq_levels_v1';
   var LINES = (window.CaldrisQuests && CaldrisQuests.CALDRIS) || {};
+  var ROOM_EMOJI = { reading: '🌳', writing: '✏️', math: '🧮', life: '🍳', pe: '🌿' };
 
   var settings = progress ? progress.getSettings() : { soundEnabled: false, ttsEnabled: false };
-  var caldrisVoice = null;
   var recognition = null;
   var isListening = false;
   var userEditing = false;
@@ -34,6 +36,11 @@
   var fishTimer = null;
   var fishGlow = false;
   var lastXp = 0;
+  var teacherLine = '';
+  var hadExchange = false;
+  var practiceMode = false;
+  var claudeSeq = 0;
+  var finishTimer = null;
 
   function $(id) { return document.getElementById(id); }
   function escapeHtml(s) {
@@ -43,6 +50,14 @@
     if (!list || !list.length) return '';
     return list[Math.floor(Math.random() * list.length)];
   }
+
+  var voice = VoiceLib.createVoiceEngine ? VoiceLib.createVoiceEngine({
+    speechSynthesis: window.speechSynthesis || null,
+    SpeechSynthesisUtterance: window.SpeechSynthesisUtterance || null,
+    onState: function (state) { syncSpeaker(state); },
+    onTalking: function (on) { setGuideMood(on ? 'talking' : ''); },
+    onBlocked: function () { showTapToHear(true); }
+  }) : null;
 
   function getLevels() {
     try { return JSON.parse(localStorage.getItem(LEVELS_KEY)) || {}; } catch (e) { return {}; }
@@ -55,13 +70,36 @@
 
   function persistSettings() {
     if (progress) progress.saveSettings(settings);
-    var btn = $('sound-toggle');
-    if (btn) {
-      btn.textContent = settings.soundEnabled ? '🔊' : '🔇';
-      btn.className = 'icon-btn' + (settings.soundEnabled ? '' : ' muted');
-    }
     var banner = $('sound-banner');
-    if (banner) banner.hidden = settings.soundEnabled;
+    if (banner) banner.hidden = !!(settings.soundEnabled && settings.ttsEnabled);
+    syncSpeaker(voice ? voice.getState() : 'idle');
+  }
+
+  function syncSpeaker(state) {
+    var btn = $('teacher-speaker');
+    if (!btn) return;
+    btn.className = 'speaker-btn';
+    if (!settings.ttsEnabled || (voice && voice.isMuted())) {
+      btn.className += ' muted';
+      btn.textContent = '🔇';
+      btn.setAttribute('aria-label', 'Teacher voice muted');
+    } else if (state === 'paused' || (voice && voice.isPaused())) {
+      btn.className += ' paused';
+      btn.textContent = '⏸️';
+      btn.setAttribute('aria-label', 'Teacher voice paused');
+    } else if (state === 'playing') {
+      btn.className += ' playing';
+      btn.textContent = '🔊';
+      btn.setAttribute('aria-label', 'Teacher is talking');
+    } else {
+      btn.textContent = '🔊';
+      btn.setAttribute('aria-label', 'Teacher voice ready');
+    }
+  }
+
+  function showTapToHear(on) {
+    var el = $('tap-to-hear');
+    if (el) el.hidden = !on;
   }
 
   function sfx(kind) {
@@ -87,33 +125,30 @@
     } catch (e) {}
   }
 
-  function initVoice() {
-    if (!window.speechSynthesis) return;
-    var voices = speechSynthesis.getVoices() || [];
-    var prefer = ['Google UK English Male', 'Daniel', 'Arthur', 'Google US English'];
-    for (var i = 0; i < prefer.length; i++) {
-      var hit = voices.find(function (v) { return v && v.name === prefer[i]; });
-      if (hit) { caldrisVoice = hit; return; }
-    }
-    caldrisVoice = voices.find(function (v) { return v && /^en/i.test(v.lang || ''); }) || voices[0] || null;
+  function initVoiceList() {
+    if (!voice) return;
+    voice.refreshVoice();
   }
 
-  function stopSpeaking() {
-    if (window.speechSynthesis) speechSynthesis.cancel();
-    setGuideMood('');
-  }
-
-  function speak(text) {
-    if (!settings.ttsEnabled || !window.speechSynthesis) return;
-    var clean = String(text || '').replace(/[#_*`]/g, '').trim();
+  function speakTeacher(text, reason) {
+    var clean = VoiceLib.cleanSpeechText ? VoiceLib.cleanSpeechText(text) : String(text || '').trim();
     if (!clean) return;
-    speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(clean);
-    if (caldrisVoice) u.voice = caldrisVoice;
-    u.rate = 0.92; u.pitch = 1.05; u.volume = 0.85;
-    u.onstart = function () { setGuideMood('talking'); };
-    u.onend = u.onerror = function () { setGuideMood(''); };
-    speechSynthesis.speak(u);
+    teacherLine = clean;
+    var bubble = $('quest-prompt');
+    if (bubble) bubble.textContent = clean;
+    if (voice && settings.ttsEnabled) {
+      var debug = voice.speak(clean, reason || 'queue');
+      if (debug && typeof console !== 'undefined' && console.info) {
+        console.info('[caldris-voice]', { full: debug.full, spoken: debug.spoken, chunks: debug.chunks, reason: reason || 'queue' });
+      }
+    }
+  }
+
+  function setTeacherLine(text, reason, logIt) {
+    var clean = VoiceLib.cleanSpeechText ? VoiceLib.cleanSpeechText(text) : String(text || '').trim();
+    if (!clean) return;
+    if (logIt !== false) questLog.push({ role: 'caldris', text: clean });
+    speakTeacher(clean, reason);
   }
 
   function setGuideMood(mood) {
@@ -128,16 +163,50 @@
     settings.soundEnabled = true;
     settings.ttsEnabled = true;
     persistSettings();
+    showTapToHear(false);
+    if (voice) voice.enable();
     sfx('chime');
-    speak('The realm is listening. I am Caldris. Your quests still stand.');
+    var hello = 'Hi Matthew. I am Caldris, your teacher. Tap a colorful room and I will teach one idea.';
+    if (voice) voice.speak(hello, 'queue');
+    var hub = $('hub-line');
+    if (hub) hub.textContent = hello;
   }
 
-  function toggleSound() {
-    settings.soundEnabled = !settings.soundEnabled;
-    settings.ttsEnabled = settings.soundEnabled;
-    persistSettings();
-    if (!settings.soundEnabled) stopSpeaking();
-    else sfx('chime');
+  function toggleTeacherSpeaker() {
+    if (!voice) return;
+    if (!settings.ttsEnabled) {
+      enableSound();
+      return;
+    }
+    if (voice.isMuted()) {
+      voice.unmute();
+      if (teacherLine) voice.replay();
+    } else if (voice.getState() === 'playing') {
+      voice.pause();
+    } else if (voice.isPaused()) {
+      voice.resume();
+    } else if (teacherLine) {
+      voice.replay();
+    }
+    syncSpeaker(voice.getState());
+  }
+
+  function replayTeacher() {
+    if (!teacherLine) return;
+    if (!settings.ttsEnabled) enableSound();
+    if (voice) {
+      voice.replay();
+      var debug = voice.getDebug();
+      if (debug && typeof console !== 'undefined') {
+        console.info('[caldris-voice-replay]', { full: debug.full, spoken: debug.spoken, same: debug.text === teacherLine });
+      }
+    }
+    var bubble = $('quest-prompt');
+    if (bubble) bubble.textContent = teacherLine;
+  }
+
+  function skipTalking() {
+    if (voice) voice.skip();
   }
 
   function initSR() {
@@ -145,23 +214,37 @@
     if (!SR) { micState = 'unsupported'; return false; }
     recognition = new SR();
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.lang = 'en-US';
     recognition.onresult = function (e) {
-      if (userEditing) return;
-      var transcript = e.results[0][0].transcript;
+      var finalText = '';
+      var interim = '';
+      var i;
+      for (i = 0; i < e.results.length; i++) {
+        var chunk = e.results[i][0].transcript;
+        if (e.results[i].isFinal) finalText += chunk;
+        else interim += chunk;
+      }
       var inp = $('chat-in');
       if (inp) {
-        inp.value = transcript;
+        inp.value = finalText || interim;
         inp.style.height = 'auto';
-        inp.style.height = Math.min(inp.scrollHeight, 100) + 'px';
+        inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
       }
       micState = 'granted';
+      if (finalText) {
+        userEditing = false;
+        handleKidText(finalText);
+      }
     };
     recognition.onend = function () { isListening = false; updateMic(); };
     recognition.onerror = function (ev) {
       isListening = false;
-      if (ev && ev.error === 'not-allowed') micState = 'denied';
+      if (ev && ev.error === 'not-allowed') {
+        micState = 'denied';
+        setMicStatus('Type your question.');
+        if ($('chat-in')) $('chat-in').focus();
+      }
       updateMic();
     };
     return true;
@@ -170,7 +253,7 @@
   function toggleMic() {
     var inp = $('chat-in');
     if (!recognition && !initSR()) {
-      setMicStatus('Voice isn’t available here. Type your answer — the quest still counts.');
+      setMicStatus('Type your question.');
       if (inp) inp.focus();
       return;
     }
@@ -183,7 +266,8 @@
     updateMic();
     try { recognition.start(); } catch (e) {
       isListening = false;
-      setMicStatus('Mic is busy. Type your answer instead.');
+      setMicStatus('Type your question.');
+      if (inp) inp.focus();
       updateMic();
     }
   }
@@ -200,12 +284,11 @@
     if (btn) {
       btn.textContent = isListening ? '🔴' : '🎤';
       btn.className = 'mic-btn' + (isListening ? ' listening' : '');
-      btn.disabled = micState === 'unsupported' ? false : false;
     }
-    if (isListening) setMicStatus('Listening… speak your answer', true);
-    else if (micState === 'denied') setMicStatus('Mic blocked. Type your answer — that still counts.');
-    else if (micState === 'unsupported') setMicStatus('Type your answer. Voice isn’t on this device.');
-    else setMicStatus('Tap 🎤 to speak your answer, or type it.');
+    if (isListening) setMicStatus('Listening… ask Caldris anything', true);
+    else if (micState === 'denied') setMicStatus('Type your question.');
+    else if (micState === 'unsupported') setMicStatus('Type your question. Voice isn’t on this device.');
+    else setMicStatus('Hold 🎤 to talk, or type a question.');
   }
 
   function showView(id) {
@@ -215,6 +298,7 @@
     window.scrollTo(0, 0);
     var toggle = $('mode-toggle');
     if (toggle) toggle.style.display = (id === 'quest-view') ? 'none' : 'block';
+    document.body.classList.toggle('parent-open', id === 'parent-view');
   }
 
   function burstOnce() {
@@ -226,7 +310,7 @@
       d.className = 'rune';
       d.style.left = (6 + Math.random() * 88) + '%';
       d.style.top = (-10 + Math.random() * 20) + 'px';
-      d.style.background = i % 2 ? '#e8c86a' : '#7b5ea7';
+      d.style.background = i % 2 ? '#ffd54a' : '#2a7de1';
       d.style.animationDelay = (Math.random() * 0.2) + 's';
       layer.appendChild(d);
     }
@@ -241,15 +325,15 @@
     burstOnce();
     sfx('unlock');
     setGuideMood('celebrating');
-    speak(LINES.unlock || 'The gateway opens. You earned this day.');
+    speakTeacher(LINES.unlock || 'All 5 rooms are stamped. Screen time is unlocked.', 'queue');
     progress.markUnlockCelebrated();
   }
 
   function hubLine(session, unlocked) {
     var done = progress.countDone(session.completed);
-    if (unlocked) return 'The gateway is open. Rest, play, and return tomorrow with a clean slate.';
-    if (done === 0) return 'Matthew, the academy lanterns are lit. Start any quest — I will walk it with you.';
-    return 'The gate opens when the day’s quests are done. The path back is always open tomorrow.';
+    if (unlocked) return 'The campus gate is open. Play, rest, and come back tomorrow.';
+    if (done === 0) return 'Tap a colorful room. I will teach one idea, then you can ask me anything.';
+    return (5 - done) + ' room' + (done === 4 ? '' : 's') + ' still need a stamp before TV unlocks.';
   }
 
   function renderHub() {
@@ -265,7 +349,7 @@
     $('realm-bg').style.backgroundImage = 'url("' + IMAGES.mainRealm + '")';
     $('hub-name').textContent = profile.name || 'Adventurer';
     $('hub-meta').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-    $('streak-chip').textContent = (profile.streak ? '🔥 ' + profile.streak + ' day streak · ' : '✦ ') + rank.title;
+    $('streak-chip').textContent = (profile.streak ? '🔥 ' + profile.streak + ' day streak · ' : '⭐ ') + rank.title;
     $('hub-line').textContent = hubLine(session, unlocked);
 
     $('xp-display').textContent = xp + ' / ' + cap + ' XP';
@@ -276,8 +360,8 @@
     setTimeout(function () { bar.classList.remove('burst'); }, 700);
     lastXp = xp;
     $('threshold-text').textContent = unlocked
-      ? 'All quests complete. XP was the cheer, not the key.'
-      : (5 - done) + ' quest' + (done === 4 ? '' : 's') + ' still keep the gate closed.';
+      ? 'All rooms stamped. Stars were the cheer, not the key.'
+      : (5 - done) + ' room' + (done === 4 ? '' : 's') + ' still keep the TV gate closed.';
 
     var banner = $('tv-banner');
     banner.className = 'tv-banner' + (unlocked ? ' unlocked' : '');
@@ -286,26 +370,24 @@
     $('tv-status-main').className = 'tv-status-main' + (unlocked ? ' go' : '');
     $('tv-status-sub').textContent = unlocked
       ? 'Gateway is open — great work today!'
-      : 'Complete all 5 quests to unlock';
+      : 'Stamp all 5 rooms to unlock';
 
     var box = $('subjects');
     box.innerHTML = '';
     if (!SUBJECTS.length) {
-      box.innerHTML = '<p class="empty-hint">No quests are packed. Start here once subjects load.</p>';
+      box.innerHTML = '<p class="empty-hint">No rooms are packed yet.</p>';
     }
     SUBJECTS.forEach(function (subj) {
       var isDone = !!(session.completed && session.completed[subj.id]);
       var card = document.createElement('button');
       card.type = 'button';
-      card.className = 'subject-card' + (isDone ? ' done' : ' ready');
-      card.style.borderLeft = '3px solid ' + subj.color;
-      card.setAttribute('aria-label', subj.name + (isDone ? ' complete' : ' ready'));
+      card.className = 'subject-card room-' + subj.id + (isDone ? ' done' : ' ready');
+      card.setAttribute('aria-label', (subj.room || subj.name) + (isDone ? ' complete' : ' ready'));
       card.innerHTML =
-        '<div class="subj-icon" style="background:' + subj.ibg + '">' + subj.icon + '</div>' +
-        '<div class="subj-info"><div class="subj-name">' + escapeHtml(subj.name) + '</div>' +
-        '<div class="subj-desc">' + escapeHtml(subj.flavor || subj.desc) + '</div></div>' +
-        '<div><div class="subj-xp">+' + subj.xp + ' XP</div>' +
-        (isDone ? '<div class="subj-done-badge">✦ STAMPED</div>' : '') + '</div>';
+        '<div class="subj-icon">' + (ROOM_EMOJI[subj.id] || subj.icon) + '</div>' +
+        '<div class="subj-info"><div class="subj-name">' + escapeHtml(subj.room || subj.name) + '</div>' +
+        '<div class="subj-desc">' + escapeHtml(subj.name) + '</div></div>' +
+        (isDone ? '<div class="door-sticker">🚪⭐</div><div class="subj-done-badge">STAMPED</div>' : '<div class="subj-xp">Tap to go in</div>');
       if (!isDone) card.addEventListener('click', function () { openQuest(subj); });
       box.appendChild(card);
     });
@@ -318,7 +400,7 @@
     var el = $('dock-banner-sub');
     if (!el || !fishing) return;
     var n = fishing.getState().castsRemaining;
-    el.textContent = n ? (n + (n === 1 ? ' cast ready' : ' casts ready')) : 'Finish a quest to earn a cast';
+    el.textContent = n ? (n + (n === 1 ? ' bonus cast ready' : ' bonus casts ready') + ' — fishing never unlocks TV') : 'Bonus only — finish a room to earn a cast';
   }
 
   function currentBeat() {
@@ -335,15 +417,16 @@
       attempts: attempts,
       usingScaffold: usingScaffold,
       log: questLog.slice(-24),
-      title: activeQuest.title
+      title: activeQuest.title,
+      hadExchange: hadExchange,
+      teacherLine: teacherLine
     });
   }
 
-  function setTypeBar(on) {
-    var bar = $('type-bar');
-    var mic = $('mic-status-bar');
-    if (bar) bar.style.display = on ? 'flex' : 'none';
-    if (mic) mic.style.display = on ? 'flex' : 'none';
+  function updateNextBtn() {
+    var btn = $('next-btn');
+    if (!btn) return;
+    btn.hidden = !hadExchange;
   }
 
   function renderDots() {
@@ -361,23 +444,17 @@
     var passage = $('quest-passage');
     if (!beat || !stage) return;
     $('quest-hint').textContent = '';
-    $('sidekick-line').textContent = usingScaffold ? 'Pick the true stone. No rush.' : 'I’ve got snacks and opinions.';
+    $('sidekick-line').textContent = usingScaffold ? 'Pick the true card. No rush.' : 'Ask Caldris anything. I brought snacks.';
     renderDots();
-    if (activeQuest.passage && beatIndex === 0) {
-      passage.classList.remove('hidden');
-      passage.textContent = activeQuest.passage;
-    } else if (activeQuest.passage && beat.type === 'tap' && beatIndex < 2) {
+    if (activeQuest.passage && (beatIndex === 0 || beat.type === 'tap')) {
       passage.classList.remove('hidden');
       passage.textContent = activeQuest.passage;
     } else {
       passage.classList.add('hidden');
     }
-    $('quest-prompt').textContent = beat.prompt;
-    speak(beat.prompt);
     orderPicked = [];
     clearFish();
     var type = beat.type;
-    setTypeBar(type === 'type' || type === 'speak');
     if (type === 'tap') {
       stage.innerHTML = '<div class="choice-grid">' + (beat.options || []).map(function (opt) {
         return '<button type="button" class="choice-btn" data-id="' + escapeHtml(opt.id) + '">' + escapeHtml(opt.label) + '</button>';
@@ -410,10 +487,10 @@
       $('fish-cast').addEventListener('click', tapFish);
       armFish();
     } else {
-      stage.innerHTML = '';
-      $('chat-in').value = '';
-      $('chat-in').focus();
+      stage.innerHTML = '<p class="empty-hint">Type or speak your try. You can also ask why.</p>';
+      if ($('chat-in')) $('chat-in').focus();
     }
+    updateNextBtn();
   }
 
   function tapOrder(id, btn) {
@@ -454,45 +531,100 @@
       clearFish();
       submitAnswer('caught');
     } else {
-      $('quest-hint').textContent = 'Wait for the bobber to glow. Patience is the spell.';
+      $('quest-hint').textContent = 'Wait for the bobber to glow.';
       setGuideMood('concerned');
-      speak('Not yet. Watch the glow.');
+      speakTeacher('Not yet. Watch the glow, then tap.', 'queue');
       attempts += 1;
       persistQuest();
     }
   }
 
+  function showPractice(on) {
+    practiceMode = !!on;
+    var el = $('practice-banner');
+    if (el) el.hidden = !on;
+  }
+
+  function paintRoomChrome(subj) {
+    var shell = $('room-shell');
+    if (shell) shell.className = 'room-shell room-' + subj.id;
+    $('quest-title').textContent = (activeQuest && activeQuest.title) || (subj.room || subj.name);
+    $('quest-sub').textContent = (subj.room || subj.name) + ' · ' + subj.name;
+    $('done-badge').className = 'done-badge';
+  }
+
+  function askClaude(extraUserText, reason) {
+    if (!Teacher.callCaldris || !Teacher.buildCaldrisRequest) {
+      showPractice(true);
+      return Promise.resolve(null);
+    }
+    var seq = ++claudeSeq;
+    var messages = questLog.slice();
+    if (extraUserText) messages.push({ role: 'user', text: extraUserText });
+    var payload = Teacher.buildCaldrisRequest({
+      subjectId: activeQuest && activeQuest.subjectId,
+      room: activeQuest && (activeQuest.room || (activeQuest.subject && activeQuest.subject.room)),
+      objective: activeQuest && activeQuest.objective,
+      practiceText: activeQuest ? CaldrisQuests.firstTeacherLine(activeQuest) : '',
+      childName: (progress && progress.getProfile().name) || 'Matthew',
+      messages: messages
+    });
+    if (extraUserText && (reason === 'user-question' || reason === 'check')) {
+      questLog.push({ role: 'user', text: extraUserText });
+    }
+    return Teacher.callCaldris(payload).then(function (result) {
+      if (seq !== claudeSeq) return null;
+      refreshParentApiStatus();
+      if (!result || !result.ok || !result.text) {
+        showPractice(true);
+        return null;
+      }
+      showPractice(false);
+      var speakReason = reason === 'user-question' ? 'queue' : 'claude-arrive';
+      setTeacherLine(result.text, speakReason, true);
+      persistQuest();
+      return result.text;
+    });
+  }
+
   function openQuest(subj) {
     var session = progress.getSession();
     if (session.completed && session.completed[subj.id]) return;
-    stopSpeaking();
+    if (voice) voice.skip();
     activeQuest = CaldrisQuests.buildQuest(subj.id, TODAY, getGrade(subj.id));
     var saved = progress.getQuestState(subj.id) || {};
     beatIndex = Math.min(saved.beatIndex || 0, activeQuest.beats.length);
     attempts = saved.attempts || 0;
     usingScaffold = !!saved.usingScaffold;
     questLog = Array.isArray(saved.log) ? saved.log.slice() : [];
+    hadExchange = !!saved.hadExchange;
     if (beatIndex >= activeQuest.beats.length) {
       finishQuest();
       return;
     }
-    $('quest-title').textContent = activeQuest.title;
-    $('quest-sub').textContent = subj.name + ' · ' + (subj.flavor || '');
-    $('done-badge').className = 'done-badge';
+    paintRoomChrome(subj);
     showView('quest-view');
+    var first = CaldrisQuests.firstTeacherLine(activeQuest);
+    if (activeQuest.beats[beatIndex] && activeQuest.beats[beatIndex].prompt) {
+      first = first + (first ? ' ' : '') + activeQuest.beats[beatIndex].prompt;
+    }
     if (!questLog.length) {
-      var hook = activeQuest.hook;
-      questLog.push({ role: 'caldris', text: hook });
-      $('hub-line').textContent = hook;
-      speak(hook);
+      setTeacherLine(first, 'queue', true);
+    } else {
+      teacherLine = saved.teacherLine || first;
+      $('quest-prompt').textContent = teacherLine;
+      speakTeacher(teacherLine, 'queue');
     }
     renderBeat();
     persistQuest();
+    askClaude(Teacher.startLessonUserLine ? Teacher.startLessonUserLine(activeQuest) : 'Please start the lesson.', 'lesson-start');
   }
 
   function submitAnswer(input) {
     var beat = currentBeat();
     if (!beat || !activeQuest) return;
+    hadExchange = true;
+    updateNextBtn();
     var rawBeat = activeQuest.beats[beatIndex];
     var result = CaldrisQuests.checkBeat(beat, input);
     var shown = Array.isArray(input) ? input.join(', ') : String(input);
@@ -500,32 +632,35 @@
     if (result.correct) {
       attempts = 0;
       usingScaffold = false;
-      var line = pick(LINES.correct) || 'True. On we go.';
-      questLog.push({ role: 'caldris', text: line });
-      $('sidekick-line').textContent = 'Yes! I felt that one in my fins.';
+      var line = pick(LINES.correct) || 'Yes! That is it.';
+      setTeacherLine(line, 'queue', true);
+      $('sidekick-line').textContent = 'Yes! I felt that one.';
       setGuideMood('celebrating');
       sfx('complete');
-      speak(line);
       beatIndex += 1;
       persistQuest();
       if (beatIndex >= activeQuest.beats.length) {
         finishQuest();
       } else {
-        setTimeout(renderBeat, 450);
+        renderBeat();
+        var next = currentBeat();
+        if (next && next.prompt) speakTeacher(next.prompt, 'queue');
       }
       return;
     }
     attempts += 1;
     var missLine = result.almost ? (pick(LINES.almost) || 'Almost.') : (pick(LINES.wrong) || 'Not that one.');
-    questLog.push({ role: 'caldris', text: missLine });
-    $('quest-hint').textContent = (rawBeat && rawBeat.hint) || beat.hint || missLine;
-    $('sidekick-line').textContent = 'Missed. Not a failure — a scout.';
+    var hint = (rawBeat && rawBeat.hint) || beat.hint || '';
+    setTeacherLine(missLine + (hint ? ' ' + hint : ''), 'queue', true);
+    $('quest-hint').textContent = hint || missLine;
+    $('sidekick-line').textContent = 'Missed. Ask why, or try again.';
     setGuideMood('concerned');
-    speak(missLine + ' ' + (rawBeat && rawBeat.hint ? rawBeat.hint : ''));
     if (attempts >= 2 && !usingScaffold && (rawBeat.type === 'type' || rawBeat.type === 'speak')) {
       usingScaffold = true;
       persistQuest();
       renderBeat();
+      var sc = currentBeat();
+      if (sc && sc.prompt) speakTeacher(sc.prompt, 'queue');
       return;
     }
     persistQuest();
@@ -534,6 +669,26 @@
       renderBeat();
     }
     if (beat.type === 'fish') armFish();
+    askClaude('I tried "' + shown + '" and it was not right. Hint, then give an easier try. Stay on this objective.', 'check');
+  }
+
+  function handleKidText(text) {
+    var clean = String(text || '').trim();
+    if (!clean || !activeQuest) return;
+    hadExchange = true;
+    updateNextBtn();
+    if (isListening && recognition) {
+      try { recognition.stop(); } catch (e) {}
+    }
+    var beat = currentBeat();
+    var isQuestion = Teacher.looksLikeQuestion ? Teacher.looksLikeQuestion(clean) : /\?/.test(clean);
+    if (!isQuestion && beat && (beat.type === 'type' || beat.type === 'speak')) {
+      submitAnswer(clean);
+      return;
+    }
+    if (voice) voice.skip();
+    $('sidekick-line').textContent = 'Good question. Caldris is on it.';
+    askClaude(clean, 'user-question');
   }
 
   function handleTypedSend() {
@@ -542,7 +697,22 @@
     if (!text) return;
     inp.value = '';
     userEditing = false;
-    submitAnswer(text);
+    handleKidText(text);
+  }
+
+  function handleNext() {
+    if (!hadExchange || !activeQuest) return;
+    var beat = currentBeat();
+    if (!beat) return;
+    if (attempts >= 1 && !usingScaffold && (beat.type === 'type' || beat.type === 'speak')) {
+      usingScaffold = true;
+      persistQuest();
+      renderBeat();
+      var sc = currentBeat();
+      if (sc && sc.prompt) speakTeacher(sc.prompt, 'queue');
+      return;
+    }
+    speakTeacher(beat.prompt || teacherLine, 'queue');
   }
 
   function finishQuest() {
@@ -554,20 +724,21 @@
     progress.saveSummary(id, questLog);
     persistQuest();
     $('done-badge').className = 'done-badge show';
-    $('quest-prompt').textContent = LINES.complete || 'Stamp earned.';
-    $('quest-stage').innerHTML = '<p class="passage quest-complete-pulse">The banner checks off on the map. The gate still needs every quest — fishing is only a bonus.</p>';
-    setTypeBar(false);
+    var doneLine = LINES.complete || 'You earned the stamp. This room is done for today.';
+    setTeacherLine(doneLine, 'queue', true);
+    $('quest-stage').innerHTML = '<p class="passage quest-complete-pulse">Door sticker earned! The TV gate still needs every room. Fishing is only a bonus.</p>';
     sfx('complete');
-    speak(LINES.complete || 'Stamp earned.');
     maybeCelebrateUnlock(wasUnlocked);
-    setTimeout(function () {
+    if (finishTimer) clearTimeout(finishTimer);
+    finishTimer = setTimeout(function () {
       activeQuest = null;
-      showHub();
-    }, 1600);
+      showHub({ keepVoice: true });
+    }, 4200);
   }
 
-  function showHub() {
-    stopSpeaking();
+  function showHub(opts) {
+    opts = opts || {};
+    if (!opts.keepVoice && voice) voice.skip();
     clearFish();
     activeQuest = null;
     showView('hub-view');
@@ -579,7 +750,7 @@
   }
 
   function closeQuest() {
-    stopSpeaking();
+    if (voice) voice.skip();
     if (isListening && recognition) try { recognition.stop(); } catch (e) {}
     persistQuest();
     showHub();
@@ -590,6 +761,12 @@
     try {
       return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch (e) { return 'Recently'; }
+  }
+
+  function refreshParentApiStatus() {
+    var el = $('teacher-api-status');
+    if (!el || !Teacher.statusLabel) return;
+    el.textContent = Teacher.statusLabel();
   }
 
   function renderParent() {
@@ -617,19 +794,20 @@
     $('p-subjects').textContent = doneCount + '/5';
     $('p-tv').textContent = tvOn ? '🟢' : '🔴';
 
-    var remaining = SUBJECTS.filter(function (sub) { return !report.completed[sub.id]; }).map(function (sub) { return sub.name; });
+    var remaining = SUBJECTS.filter(function (sub) { return !report.completed[sub.id]; }).map(function (sub) { return sub.room || sub.name; });
     var statusMsg;
     if (doneCount === 0) {
-      statusMsg = isToday ? (who + ' hasn’t started any quests yet today.') : ('No recorded quests for ' + who + ' on this day.');
+      statusMsg = isToday ? (who + ' hasn’t started any rooms yet today.') : ('No recorded quests for ' + who + ' on this day.');
     } else if (doneCount === 5) {
-      statusMsg = who + ' completed all 5 quests' + (isToday ? ' today' : '') + ' — ' + xp + ' XP. ' + (tvOn ? 'Screen time is unlocked.' : 'TV is re-locked by parent override.');
+      statusMsg = who + ' completed all 5 rooms' + (isToday ? ' today' : '') + ' — ' + xp + ' XP. ' + (tvOn ? 'Screen time is unlocked.' : 'TV is re-locked by parent override.');
     } else {
-      statusMsg = doneCount + ' of 5 quests done. Still needed: ' + remaining.join(', ') + '.';
+      statusMsg = doneCount + ' of 5 rooms done. Still needed: ' + remaining.join(', ') + '.';
     }
     $('allen-status').textContent = statusMsg;
+    refreshParentApiStatus();
     $('snapshot-grid').innerHTML =
       '<div>TV: ' + (tvOn ? 'Unlocked' : 'Locked') + '</div>' +
-      '<div>Quests: ' + doneCount + '/5</div>' +
+      '<div>Rooms: ' + doneCount + '/5</div>' +
       '<div>XP: ' + xp + ' / ' + progress.dailyXpCap() + '</div>' +
       '<div>Streak: ' + (profile.streak || 0) + '</div>' +
       '<div>Last quest: ' + formatActivity(session.lastActivity) + '</div>' +
@@ -640,8 +818,8 @@
     $('academy-subject-list').innerHTML = SUBJECTS.map(function (sub) {
       var done = !!(report.completed && report.completed[sub.id]);
       return '<div class="acad-item"><span>' + (done ? '✅' : '⬜') + '</span><span>' + sub.icon +
-        '</span><span class="acad-name">' + escapeHtml(sub.name) + '</span><span class="acad-level">' +
-        escapeHtml(sub.flavor) + '</span></div>';
+        '</span><span class="acad-name">' + escapeHtml(sub.room || sub.name) + '</span><span class="acad-level">' +
+        escapeHtml(sub.name) + '</span></div>';
     }).join('');
 
     $('transcript-section-title').textContent = isToday ? "Today's Session Transcripts" : 'Session Transcripts';
@@ -661,7 +839,7 @@
             '</div><div class="what">' + escapeHtml(m.text) + '</div></div>';
         }).join('');
         return '<div class="transcript-panel"><div class="transcript-header" data-toggle="1"><div><div class="transcript-subj">' +
-          sub.icon + ' ' + escapeHtml(sub.name) + '</div><div class="transcript-time">Completed at ' +
+          sub.icon + ' ' + escapeHtml(sub.room || sub.name) + '</div><div class="transcript-time">Completed at ' +
           escapeHtml(sum.completedAt || '') + '</div></div><div>▼</div></div><div class="transcript-body">' +
           (msgs || '<p class="empty-hint">No messages recorded.</p>') + '</div></div>';
       }).join('');
@@ -672,7 +850,7 @@
       $('parent-quest-list').innerHTML = SUBJECTS.map(function (sub) {
         var done = !!(report.completed && report.completed[sub.id]);
         return '<div class="parent-quest-item"><span>' + sub.icon + '</span><span class="parent-quest-name">' +
-          escapeHtml(sub.name) + '</span><button type="button" class="parent-quest-check' + (done ? ' done' : '') +
+          escapeHtml(sub.room || sub.name) + '</span><button type="button" class="parent-quest-check' + (done ? ' done' : '') +
           '" data-qid="' + sub.id + '" aria-label="Toggle ' + escapeHtml(sub.name) + '">' + (done ? '✓' : '') +
           '</button></div>';
       }).join('');
@@ -717,8 +895,8 @@
   function enterParentMode() {
     inParentMode = true;
     parentViewDate = TODAY;
-    $('mode-toggle').textContent = '← Back to Quest Hub';
-    stopSpeaking();
+    $('mode-toggle').textContent = '← Back to Campus';
+    if (voice) voice.skip();
     renderParent();
     showView('parent-view');
   }
@@ -765,7 +943,7 @@
     var state = fishing.getState();
     var n = state.castsRemaining;
     $('dock-cast-count').textContent = n + (n === 1 ? ' cast ready' : ' casts ready');
-    $('cast-status').textContent = n ? 'Tap CAST. I already picked a lucky ripple.' : 'Finish a quest today and I will hand you a cast.';
+    $('cast-status').textContent = n ? 'Tap CAST. I already picked a lucky ripple.' : 'Finish a room today and I will hand you a cast.';
     $('cast-btn').disabled = n < 1;
     $('dupe-hint').textContent = state.duplicateBank + ' / ' + CaldrisFishing.DUPES_PER_GEAR +
       ' duplicate fish toward the next ' + fishing.getGear().nextPiece + '. Gear is just for show. Fishing never unlocks TV.';
@@ -775,13 +953,13 @@
   function showCastResult(result) {
     var box = $('cast-result');
     if (!result.ok) {
-      box.innerHTML = '<div class="buddy-line">No casts left. Go finish a quest. I’ll wait. Dramatically.</div>';
+      box.innerHTML = '<div class="buddy-line">No casts left. Go finish a room. I’ll wait. Dramatically.</div>';
       return;
     }
     if (!result.caught) {
       box.className = 'cast-result';
       box.innerHTML = '<div class="fish-rarity">The water shrugged</div><div class="buddy-line">' + escapeFish(result.line) + '</div>';
-      speak(result.line);
+      speakTeacher(result.line, 'queue');
       return;
     }
     var extra = result.newSpecies ? 'New to the Codex.' : ('Caught ×' + result.count + (result.gearGained ? ' — gear upgraded!' : ''));
@@ -791,19 +969,19 @@
       '<div class="fish-name">' + escapeFish(result.species.name) + '</div>' +
       '<div class="codex-meta">' + extra + '</div>' +
       '<div class="buddy-line">' + escapeFish(result.line) + '</div>';
-    speak(result.line);
+    speakTeacher(result.line, 'queue');
   }
 
   function openDock() {
     if (!fishing) return;
-    stopSpeaking();
+    if (voice) voice.skip();
     renderDock();
     showView('dock-view');
   }
 
   function openCodex() {
     if (!fishing) return;
-    stopSpeaking();
+    if (voice) voice.skip();
     var entries = fishing.getCodex();
     var caught = entries.filter(function (e) { return e.caught; }).length;
     $('codex-progress').textContent = caught + ' / ' + entries.length + ' species';
@@ -824,16 +1002,48 @@
     $('stamp-book').innerHTML = SUBJECTS.map(function (sub) {
       var today = session.completed && session.completed[sub.id];
       var n = (profile.stampCounts && profile.stampCounts[sub.id]) || 0;
-      return '<span class="stamp">' + sub.icon + ' ' + escapeHtml(sub.name) + (today ? ' ✓ today' : '') + ' · ×' + n + '</span>';
-    }).join('') || '<p class="empty-hint">Finish a quest to earn your first stamp.</p>';
+      return '<span class="stamp">' + (ROOM_EMOJI[sub.id] || sub.icon) + ' ' + escapeHtml(sub.room || sub.name) + (today ? ' ✓ today' : '') + ' · ×' + n + '</span>';
+    }).join('') || '<p class="empty-hint">Finish a room to earn your first stamp.</p>';
     if (fishing) {
       var entries = fishing.getCodex().filter(function (e) { return e.caught; });
       $('journal-fish').innerHTML = entries.length ? entries.map(function (e) {
         return '<div class="codex-row"><div class="codex-thumb"><img src="' + e.art + '" alt=""></div><div><div class="codex-name">' +
           escapeFish(e.name) + '</div><div class="codex-meta">×' + e.count + '</div></div></div>';
-      }).join('') : '<p class="empty-hint">No fish yet. Cast at the dock after a quest.</p>';
+      }).join('') : '<p class="empty-hint">No fish yet. Cast at the dock after a room.</p>';
     }
     showView('journal-view');
+  }
+
+  function hotspotBoard() {
+    if (teacherLine) replayTeacher();
+    else if (activeQuest && activeQuest.teach) speakTeacher(activeQuest.teach, 'queue');
+  }
+
+  function hotspotBook() {
+    var beat = currentBeat();
+    var hint = (beat && beat.hint) || (activeQuest && activeQuest.teach) || 'Look at the board, then try one card.';
+    $('quest-hint').textContent = hint;
+    speakTeacher(hint, 'queue');
+  }
+
+  function hotspotStars() {
+    if (!progress) return;
+    var session = progress.getSession();
+    var profile = progress.getProfile();
+    var lines = SUBJECTS.map(function (sub) {
+      var today = session.completed && session.completed[sub.id];
+      return (today ? '⭐ ' : '☆ ') + (sub.room || sub.name);
+    });
+    var html = '<div class="star-jar-pop">' + lines.map(function (l) { return escapeHtml(l); }).join('<br>') +
+      '<div class="codex-meta">Stamps never unlock TV by themselves. All 5 rooms still required.</div></div>';
+    var stage = $('quest-stage');
+    if (stage) {
+      var pop = document.createElement('div');
+      pop.innerHTML = html;
+      stage.insertBefore(pop, stage.firstChild);
+      setTimeout(function () { if (pop.parentNode) pop.parentNode.removeChild(pop); }, 4000);
+    }
+    speakTeacher('Here are your room stars. TV still needs every stamp. You have ' + (profile.streak || 0) + ' streak days.', 'queue');
   }
 
   function doSetup() {
@@ -852,7 +1062,18 @@
   function bind() {
     $('setup-btn').addEventListener('click', doSetup);
     $('enable-sound-btn').addEventListener('click', enableSound);
-    $('sound-toggle').addEventListener('click', toggleSound);
+    $('tap-to-hear-btn').addEventListener('click', function () {
+      if (!settings.ttsEnabled) enableSound();
+      else replayTeacher();
+      showTapToHear(false);
+    });
+    $('teacher-speaker').addEventListener('click', toggleTeacherSpeaker);
+    $('replay-btn').addEventListener('click', replayTeacher);
+    $('skip-talk-btn').addEventListener('click', skipTalking);
+    $('next-btn').addEventListener('click', handleNext);
+    $('hot-board').addEventListener('click', hotspotBoard);
+    $('hot-book').addEventListener('click', hotspotBook);
+    $('hot-stars').addEventListener('click', hotspotStars);
     $('quest-back').addEventListener('click', closeQuest);
     $('mic-btn').addEventListener('click', toggleMic);
     $('send-btn').addEventListener('click', handleTypedSend);
@@ -862,14 +1083,14 @@
     });
     $('chat-in').addEventListener('input', function () {
       this.style.height = 'auto';
-      this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+      this.style.height = Math.min(this.scrollHeight, 120) + 'px';
     });
     $('chat-in').addEventListener('keydown', function (e) {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleTypedSend(); }
     });
     $('tv-banner').addEventListener('click', function () {
       if (progress && !progress.isTvUnlocked()) {
-        speak(LINES.skip);
+        speakTeacher(LINES.skip, 'queue');
         $('hub-line').textContent = LINES.skip;
         sfx('lock');
       }
@@ -967,9 +1188,10 @@
   function boot() {
     if (!progress) return;
     if (window.speechSynthesis) {
-      speechSynthesis.onvoiceschanged = initVoice;
-      initVoice();
+      speechSynthesis.onvoiceschanged = initVoiceList;
+      initVoiceList();
     }
+    if (settings.ttsEnabled && voice) voice.enable();
     persistSettings();
     bind();
     var profile = progress.getProfile();
@@ -977,7 +1199,7 @@
       $('setup-screen').hidden = false;
       $('mode-toggle').style.display = 'none';
     } else {
-      showHub();
+      showHub({ keepVoice: true });
     }
   }
 

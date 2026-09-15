@@ -27,6 +27,7 @@
 const http = require('http');
 const https = require('https');
 const { URL } = require('url');
+const teacher = require('../../lib/teacher');
 
 const ANTHROPIC_BASE_URL = process.env.ANTHROPIC_BASE_URL || 'https://api.anthropic.com';
 const ANTHROPIC_VERSION = process.env.ANTHROPIC_VERSION || '2023-06-01';
@@ -99,8 +100,8 @@ exports.handler = async (event) => {
   }
 
   const payload = {
-    model: parsed.model || 'claude-sonnet-5',
-    max_tokens: parsed.max_tokens || 900,
+    model: parsed.model || teacher.DEFAULT_MODEL,
+    max_tokens: parsed.max_tokens || teacher.MAX_TOKENS,
     messages: Array.isArray(parsed.messages) ? parsed.messages : [],
   };
   if (parsed.system) payload.system = parsed.system;

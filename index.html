@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#0b0b12">
+<meta name="theme-color" content="#6ec6ea">
 <meta name="mobile-web-app-capable" content="yes">
 <title>The Realm of Caldris</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="assets/images/caldris.jpg">
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/app.css">
 </head>
 <body>
@@ -17,19 +17,19 @@
 
   <div id="setup-screen" class="setup-screen" hidden>
     <div class="setup-box">
-      <div class="setup-orb"><img src="assets/images/caldris.jpg" alt="Caldris, Guide of Worlds"></div>
+      <div class="setup-orb"><img src="assets/images/caldris.jpg" alt="Caldris, your teacher"></div>
       <div class="setup-title">The Realm of Caldris</div>
-      <div class="setup-sub">Welcome, young adventurer. Tell us your name, and a secret 4-digit code for your guardian.</div>
+      <div class="setup-sub">Hi! I am Caldris, your teacher. Tell me your name, and a secret 4-digit code for your grown-up.</div>
       <label class="setup-label" for="setup-name">Your Name</label>
       <input class="setup-input" id="setup-name" placeholder="e.g. Matthew" maxlength="30" autocomplete="nickname">
       <label class="setup-label" for="setup-pin">Parent PIN (4 digits)</label>
       <input class="setup-input" id="setup-pin" type="password" inputmode="numeric" placeholder="••••" maxlength="4" autocomplete="off">
-      <button class="setup-btn" type="button" id="setup-btn">Begin the Quest ✦</button>
+      <button class="setup-btn" type="button" id="setup-btn">Let’s go!</button>
     </div>
   </div>
 
   <div id="hub-view" class="view">
-    <div class="realm-bg" id="realm-bg">
+    <div class="realm-bg campus-hero" id="realm-bg">
       <div class="lantern-glow a"></div>
       <div class="lantern-glow b"></div>
       <div class="hud">
@@ -39,17 +39,17 @@
           <img class="sidekick-avatar" src="assets/images/sidekick.png" alt="Bass Buddy">
         </div>
         <div class="hud-copy">
-          <div class="eyebrow">The Realm of Caldris</div>
+          <div class="eyebrow">Campus Map</div>
           <div class="hero-name" id="hub-name">Adventurer</div>
           <div class="hero-meta" id="hub-meta"></div>
-          <div class="streak-chip" id="streak-chip">✦ Adventurer</div>
+          <div class="streak-chip" id="streak-chip">⭐ Adventurer</div>
         </div>
       </div>
     </div>
-    <div class="caldris-line" id="hub-line">The day’s quests still stand. The gate waits without hurry.</div>
+    <div class="speech-bubble hub-bubble" id="hub-line">Tap a colorful room. I will teach one idea, then you can ask me anything.</div>
     <div class="sound-enable" id="sound-banner">
-      <div>Sound starts quiet. Tap once to hear Caldris and the realm chimes.</div>
-      <button type="button" class="secondary-btn" id="enable-sound-btn">Enable sound</button>
+      <div>Tap once so Caldris can talk. Voice stays on after that.</div>
+      <button type="button" class="chunky-btn" id="enable-sound-btn">Enable teacher voice</button>
     </div>
 
     <div class="tv-banner" id="tv-banner" role="status">
@@ -57,61 +57,82 @@
       <div class="tv-info">
         <div class="tv-status-label">Screen Time Gateway</div>
         <div class="tv-status-main" id="tv-status-main">LOCKED</div>
-        <div class="tv-status-sub" id="tv-status-sub">Complete all 5 quests to unlock</div>
+        <div class="tv-status-sub" id="tv-status-sub">Stamp all 5 rooms to unlock</div>
       </div>
     </div>
 
     <div class="xp-section">
       <div class="xp-header">
-        <span class="xp-label">Daily XP</span>
+        <span class="xp-label">Star path</span>
         <span class="xp-count" id="xp-display">0 / 110 XP</span>
       </div>
       <div class="xp-bar-track" aria-hidden="true">
         <div class="xp-bar-fill" id="xp-bar"></div>
       </div>
-      <div class="xp-threshold-text" id="threshold-text">XP shows your fire. The gate still needs every quest.</div>
+      <div class="xp-threshold-text" id="threshold-text">Stars cheer. The TV gate still needs every room.</div>
     </div>
 
-    <div class="section-title">Today’s Quests</div>
-    <div class="subjects" id="subjects"></div>
+    <div class="section-title">Tap a room</div>
+    <div class="campus-grid" id="subjects"></div>
 
     <div class="dock-banner" id="dock-banner" role="button" tabindex="0">
       <img src="assets/images/sidekick.png" alt="">
       <div class="tv-info">
         <div class="dock-banner-title subj-name">Bass Buddy’s Dock</div>
-        <div class="dock-banner-sub tv-status-sub" id="dock-banner-sub">Finish a quest to earn a cast</div>
+        <div class="dock-banner-sub tv-status-sub" id="dock-banner-sub">Bonus only — fishing never unlocks TV</div>
       </div>
     </div>
-    <button class="codex-link" type="button" id="journal-link">Collection Journal</button>
+    <button class="codex-link" type="button" id="journal-link">Star Journal</button>
   </div>
 
   <div id="quest-view" class="view">
-    <div class="quest-hd">
-      <button class="back-btn" type="button" id="quest-back" aria-label="Back to the realm">←</button>
-      <img class="guide-avatar" id="quest-caldris" src="assets/images/caldris.jpg" alt="Caldris">
-      <div>
-        <div class="quest-hd-name" id="quest-title">Quest</div>
-        <div class="quest-hd-sub" id="quest-sub">Guide of Worlds</div>
+    <div class="room-shell" id="room-shell">
+      <div class="quest-hd">
+        <button class="back-btn" type="button" id="quest-back" aria-label="Back to campus">←</button>
+        <div class="teacher-portrait">
+          <img class="guide-avatar" id="quest-caldris" src="assets/images/caldris.jpg" alt="Caldris the teacher">
+          <button class="speaker-btn" type="button" id="teacher-speaker" aria-label="Teacher voice">🔊</button>
+        </div>
+        <div class="quest-hd-copy">
+          <div class="quest-hd-name" id="quest-title">Classroom</div>
+          <div class="quest-hd-sub" id="quest-sub">Caldris</div>
+        </div>
+        <div class="room-hud-avatars">
+          <img class="player-avatar tiny" src="assets/images/matthew.png" alt="Matthew">
+          <img class="sidekick-avatar tiny" src="assets/images/sidekick.png" alt="Bass Buddy">
+        </div>
+        <div class="done-badge" id="done-badge">⭐ STAMP</div>
       </div>
-      <button class="icon-btn" type="button" id="sound-toggle" aria-label="Toggle sound">🔇</button>
-      <div class="done-badge" id="done-badge">✦ COMPLETE</div>
-    </div>
-    <div class="beat-dots" id="beat-dots"></div>
-    <div class="quest-body">
-      <div class="passage hidden" id="quest-passage"></div>
-      <div class="prompt" id="quest-prompt"></div>
-      <div id="quest-stage"></div>
-      <div class="hint" id="quest-hint"></div>
-      <div class="reaction">
-        <img src="assets/images/sidekick.png" alt="Bass Buddy">
-        <div id="sidekick-line">I’ve got snacks and opinions.</div>
+      <div class="beat-dots" id="beat-dots"></div>
+      <div class="room-hotspots" aria-label="Classroom hotspots">
+        <button type="button" class="hotspot" id="hot-board">chalkboard</button>
+        <button type="button" class="hotspot" id="hot-book">hint book</button>
+        <button type="button" class="hotspot" id="hot-stars">star jar</button>
+      </div>
+      <div class="quest-body">
+        <div class="speech-bubble teacher-bubble" id="teacher-bubble">
+          <div class="prompt" id="quest-prompt">Caldris is ready.</div>
+          <div class="bubble-actions">
+            <button type="button" class="mini-chunky" id="replay-btn">Replay</button>
+            <button type="button" class="mini-chunky ghost" id="skip-talk-btn">Skip talking</button>
+          </div>
+        </div>
+        <div class="practice-banner" id="practice-banner" hidden>Teacher is offline — practice mode</div>
+        <div class="passage hidden" id="quest-passage"></div>
+        <div class="answer-stage" id="quest-stage"></div>
+        <div class="hint" id="quest-hint"></div>
+        <div class="reaction">
+          <img src="assets/images/sidekick.png" alt="Bass Buddy">
+          <div id="sidekick-line">Ask Caldris anything. I brought snacks.</div>
+        </div>
+        <button type="button" class="chunky-btn next-btn" id="next-btn" hidden>Next</button>
       </div>
     </div>
-    <div class="mic-status" id="mic-status-bar">Tap 🎤 to speak your answer, or type it.</div>
+    <div class="mic-status" id="mic-status-bar">Hold 🎤 to talk, or type a question.</div>
     <div class="input-bar" id="type-bar">
-      <button class="mic-btn" id="mic-btn" type="button" title="Speak your answer" aria-label="Speak your answer">🎤</button>
-      <textarea class="chat-in" id="chat-in" placeholder="Type your answer here..." rows="1" aria-label="Type your answer"></textarea>
-      <button class="send-btn" id="send-btn" type="button" aria-label="Send answer">➤</button>
+      <button class="mic-btn" id="mic-btn" type="button" title="Talk to Caldris" aria-label="Talk to Caldris">🎤</button>
+      <textarea class="chat-in" id="chat-in" placeholder="Ask Caldris…" rows="1" aria-label="Ask Caldris"></textarea>
+      <button class="send-btn" type="button" id="send-btn" aria-label="Send">Send</button>
     </div>
   </div>
 
@@ -135,6 +156,7 @@
       <div class="allen-header">Status Snapshot</div>
       <div class="allen-status" id="allen-status">Opening the ledger…</div>
       <div class="snapshot-grid" id="snapshot-grid"></div>
+      <div class="teacher-api-debug" id="teacher-api-status">Teacher API: idle</div>
       <div class="allen-reminder">Hold the line — even if Matthew says “oh well, I lost it anyway.” The path back is always open tomorrow. Don’t soften before all quests are done.</div>
     </div>
     <div class="parent-section" id="tv-override-section">
@@ -199,7 +221,7 @@
       <div class="buddy-line">The water is waiting. I have opinions about this river.</div>
     </div>
     <button class="codex-link" type="button" id="open-codex-btn">Open the Codex</button>
-    <button class="reset-btn" type="button" id="dock-back">← Back to the Hub</button>
+    <button class="reset-btn" type="button" id="dock-back">← Back to campus</button>
   </div>
 
   <div id="codex-view" class="view">
@@ -209,29 +231,33 @@
       <div class="p-header-date" id="codex-progress"></div>
     </div>
     <div class="codex-grid" id="codex-grid"></div>
-    <button class="reset-btn" type="button" id="codex-back">← Back to the Hub</button>
+    <button class="reset-btn" type="button" id="codex-back">← Back to campus</button>
   </div>
 
   <div id="journal-view" class="view">
     <div class="p-header">
       <div class="p-header-label">Collection</div>
-      <div class="p-header-title">Quest Journal</div>
+      <div class="p-header-title">Star Journal</div>
       <div class="p-header-date" id="journal-meta"></div>
     </div>
     <div class="parent-section">
-      <div class="section-title">Quest Stamps</div>
+      <div class="section-title">Room stamps</div>
       <div id="stamp-book"></div>
     </div>
     <div class="parent-section">
       <div class="section-title">Fish (bonus)</div>
       <div class="codex-grid" id="journal-fish"></div>
     </div>
-    <button class="reset-btn" type="button" id="journal-back">← Back to the Hub</button>
+    <button class="reset-btn" type="button" id="journal-back">← Back to campus</button>
   </div>
 
 </div>
 
 <button class="mode-toggle" id="mode-toggle" type="button">⚙ Parent Mode</button>
+
+<div class="tap-to-hear" id="tap-to-hear" hidden>
+  <button type="button" class="chunky-btn" id="tap-to-hear-btn">Tap to hear Caldris</button>
+</div>
 
 <div class="pin-overlay" id="pin-overlay" role="dialog" aria-modal="true" aria-labelledby="pin-title">
   <div class="pin-box">
@@ -249,6 +275,8 @@
 <script src="lib/progress.js"></script>
 <script src="lib/fishing.js"></script>
 <script src="lib/quests.js"></script>
+<script src="lib/voice.js"></script>
+<script src="lib/teacher.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

@@ -58,3 +58,12 @@ test('normalize treats spoken punctuation as typeable text', function () {
   assert.equal(quests.normalize('The Sun!'), 'the sun');
   assert.equal(quests.normalize('  Blue,  '), 'blue');
 });
+
+test('first teacher line is hook plus teach, never a dangling Loading line', function () {
+  const quest = quests.buildQuest('math', 'Tue Sep 15 2026', 1);
+  const line = quests.firstTeacherLine(quest);
+  assert.ok(line);
+  assert.ok(line.indexOf('Loading') === -1);
+  assert.ok(quest.teach);
+  assert.ok(line.indexOf(quest.teach) !== -1);
+});
