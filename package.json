@@ -1,0 +1,9 @@
+{
+  "name": "realm-of-caldris",
+  "private": true,
+  "description": "Matthew's Homeschool Adventure — The Realm of Caldris",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test tests/*.test.js"
+  }
+}
