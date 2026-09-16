@@ -2,783 +2,228 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#6ec6ea">
+<meta name="mobile-web-app-capable" content="yes">
 <title>The Realm of Caldris</title>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg:       #0b0b12;
-  --bg2:      #111120;
-  --bg3:      #181828;
-  --border:   #2a2a40;
-  --gold:     #c8a84b;
-  --gold2:    #e8c86a;
-  --text:     #d4d0c8;
-  --text2:    #8a8a9a;
-  --accent:   #7b5ea7;
-  --green:    #3d8a5c;
-  --red:      #a03040;
-  --crimson:  #a03040;
-  --ivory:    #f3eee4;
-  --radius:   12px;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Crimson Pro', Georgia, serif;
-  font-size: 17px;
-  min-height: 100vh;
-  overflow-x: hidden;
-}
-#app { max-width: 680px; margin: 0 auto; padding: 0 0 80px; }
-
-/* ── VIEWS ── */
-.view { display: none; }
-.view.active { display: block; }
-
-/* ── HEADER ── */
-.app-header {
-  background: linear-gradient(180deg, #0d0d1a 0%, var(--bg2) 100%);
-  border-bottom: 1px solid var(--border);
-  padding: 20px 20px 16px;
-  text-align: center;
-  position: relative;
-}
-.app-header-eyebrow {
-  font-family: 'Cinzel', serif;
-  font-size: 10px;
-  letter-spacing: 3px;
-  color: var(--gold);
-  text-transform: uppercase;
-  margin-bottom: 4px;
-}
-.app-header-name {
-  font-family: 'Cinzel', serif;
-  font-size: 26px;
-  color: var(--gold2);
-  text-shadow: 0 0 20px rgba(200,168,75,.4);
-}
-.app-header-date {
-  font-size: 13px;
-  color: var(--text2);
-  margin-top: 4px;
-}
-
-/* ── CALDRIS ORB ── */
-.caldris-orb {
-  width: 60px; height: 60px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, #3a2870, #1a0f40);
-  border: 2px solid var(--accent);
-  box-shadow: 0 0 16px rgba(123,94,167,.5);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px;
-  margin: 16px auto 8px;
-  transition: box-shadow .3s;
-}
-.caldris-orb img {
-  width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
-}
-.caldris-orb.speaking {
-  box-shadow: 0 0 30px rgba(123,94,167,.9), 0 0 60px rgba(123,94,167,.4);
-  animation: pulse-orb 1.2s ease-in-out infinite;
-}
-@keyframes pulse-orb {
-  0%,100% { transform: scale(1); }
-  50% { transform: scale(1.06); }
-}
-
-/* ── HERO / REALM IMAGERY ── */
-.hub-hero {
-  display: block;
-  width: 100%;
-  height: 170px;
-  object-fit: cover;
-  border-bottom: 1px solid var(--border);
-}
-.hub-hero.hidden { display: none; }
-.player-avatar {
-  display: block;
-  height: 150px;
-  width: auto;
-  margin: 10px auto 2px;
-  filter: drop-shadow(0 6px 10px rgba(0,0,0,.5));
-}
-.player-avatar.hidden { display: none; }
-
-/* ── TV BANNER ── */
-.tv-banner {
-  margin: 16px;
-  padding: 14px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg2);
-  display: flex; align-items: center; gap: 12px;
-}
-.tv-banner.unlocked {
-  border-color: var(--green);
-  background: rgba(61,138,92,.1);
-}
-.tv-icon { font-size: 28px; }
-.tv-info { flex: 1; }
-.tv-status-label { font-size: 11px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
-.tv-status-main { font-family: 'Cinzel', serif; font-size: 18px; color: var(--gold); }
-.tv-status-main.go { color: var(--green); }
-.tv-status-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
-
-/* ── XP BAR ── */
-.xp-section { padding: 0 16px 12px; }
-.xp-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.xp-label { font-size: 12px; color: var(--text2); letter-spacing: 1px; text-transform: uppercase; }
-.xp-count { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold); }
-.xp-bar-track {
-  height: 8px; border-radius: 4px;
-  background: var(--bg3); border: 1px solid var(--border);
-  overflow: hidden;
-}
-.xp-bar-fill {
-  height: 100%; border-radius: 4px;
-  background: linear-gradient(90deg, var(--accent), var(--gold));
-  transition: width .5s ease;
-}
-.xp-threshold-text { font-size: 12px; color: var(--text2); margin-top: 5px; text-align: right; }
-
-/* ── SECTION TITLE ── */
-.section-title {
-  font-family: 'Cinzel', serif;
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--text2);
-  text-transform: uppercase;
-  padding: 0 16px 8px;
-  border-bottom: 1px solid var(--border);
-  margin: 4px 16px 12px;
-}
-
-/* ── SUBJECT CARDS ── */
-.subjects { padding: 0 16px 16px; display: flex; flex-direction: column; gap: 10px; }
-.subject-card {
-  border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--bg2);
-  padding: 14px 16px;
-  display: flex; align-items: center; gap: 14px;
-  cursor: pointer;
-  transition: border-color .2s, background .2s;
-  position: relative;
-}
-.subject-card:hover { border-color: var(--accent); background: var(--bg3); }
-.subject-card.done { border-color: var(--green); opacity: .75; cursor: default; }
-.subj-icon {
-  width: 44px; height: 44px; border-radius: 10px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; flex-shrink: 0;
-}
-.subj-icon.has-img { background-size: cover; background-position: center; font-size: 0; }
-.subj-info { flex: 1; min-width: 0; }
-.subj-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); }
-.subj-desc { font-size: 13px; color: var(--text2); margin-top: 2px; }
-.subj-level { font-size: 12px; color: var(--accent); margin-top: 3px; }
-.subj-xp { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold); }
-.subj-done-badge {
-  position: absolute; top: 8px; right: 10px;
-  font-size: 11px; color: var(--green); letter-spacing: 1px;
-  font-family: 'Cinzel', serif;
-}
-
-/* ── CHAT VIEW ── */
-#chat-view { display: none; flex-direction: column; height: 100vh; }
-#chat-view.active { display: flex; }
-
-.chat-hd {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 14px;
-  display: flex; align-items: center; gap: 10px;
-  flex-shrink: 0;
-}
-.back-btn {
-  background: none; border: none; color: var(--gold); cursor: pointer;
-  font-size: 20px; padding: 4px 8px; border-radius: 6px;
-  transition: background .2s;
-}
-.back-btn:hover { background: var(--bg3); }
-.chat-orb {
-  width: 36px; height: 36px; border-radius: 50%;
-  background: radial-gradient(circle at 40% 40%, #3a2870, #1a0f40);
-  border: 1.5px solid var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 16px; flex-shrink: 0;
-  transition: box-shadow .3s;
-}
-.chat-orb.speaking { box-shadow: 0 0 16px rgba(123,94,167,.8); animation: pulse-orb 1.2s ease-in-out infinite; }
-.chat-hd-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); }
-.chat-hd-sub { font-size: 12px; color: var(--text2); }
-.voice-btn {
-  background: none; border: none; cursor: pointer;
-  font-size: 20px; padding: 4px; border-radius: 6px; margin-left: auto;
-  transition: background .2s;
-}
-.voice-btn:hover { background: var(--bg3); }
-.voice-btn.muted { opacity: .4; }
-.done-badge {
-  font-family: 'Cinzel', serif; font-size: 11px; color: var(--green);
-  letter-spacing: 1px; display: none;
-}
-.done-badge.show { display: block; }
-
-.chat-msgs {
-  flex: 1; overflow-y: auto;
-  padding: 16px;
-  display: flex; flex-direction: column; gap: 12px;
-}
-.msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 16px; line-height: 1.55; }
-.msg.caldris {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-bottom-left-radius: 4px; align-self: flex-start;
-  color: var(--text);
-}
-.msg.user {
-  background: linear-gradient(135deg, var(--accent), #5a3e87);
-  border-bottom-right-radius: 4px; align-self: flex-end;
-  color: #fff;
-}
-.msg.system {
-  background: rgba(200,168,75,.1); border: 1px solid rgba(200,168,75,.3);
-  color: var(--gold); align-self: center;
-  font-family: 'Cinzel', serif; font-size: 13px;
-  text-align: center; max-width: 100%;
-}
-.typing-dots { display: flex; gap: 5px; padding: 4px 0; }
-.typing-dots span {
-  width: 8px; height: 8px; border-radius: 50%;
-  background: var(--text2); animation: bounce .9s infinite;
-}
-.typing-dots span:nth-child(2) { animation-delay: .2s; }
-.typing-dots span:nth-child(3) { animation-delay: .4s; }
-@keyframes bounce { 0%,80%,100% { transform: translateY(0); } 40% { transform: translateY(-8px); } }
-
-/* ── MIC STATUS ── */
-.mic-status {
-  text-align: center; padding: 8px; font-size: 13px;
-  color: var(--text2); background: var(--bg2);
-  border-top: 1px solid var(--border);
-  transition: all .3s; height: 38px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-}
-.mic-status.on { color: #e06060; background: rgba(224,96,96,.08); }
-
-/* ── INPUT BAR ── */
-.input-bar {
-  display: flex; align-items: flex-end; gap: 8px;
-  padding: 10px 12px;
-  background: var(--bg2); border-top: 1px solid var(--border);
-  flex-shrink: 0;
-}
-.chat-in {
-  flex: 1; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 10px; color: var(--text);
-  font-family: 'Crimson Pro', Georgia, serif; font-size: 16px;
-  padding: 10px 12px; resize: none; outline: none;
-  min-height: 44px; max-height: 100px;
-  line-height: 1.4; transition: border-color .2s;
-}
-.chat-in:focus { border-color: var(--accent); }
-.mic-btn, .send-btn {
-  width: 44px; height: 44px; border-radius: 10px;
-  border: none; cursor: pointer; font-size: 20px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; transition: background .2s;
-}
-.mic-btn { background: var(--bg3); border: 1px solid var(--border); }
-.mic-btn:hover { background: var(--border); }
-.mic-btn.listening { background: rgba(224,96,96,.15); border-color: #e06060; }
-.send-btn { background: var(--accent); color: #fff; }
-.send-btn:hover { background: #6a4e97; }
-.send-btn:disabled { opacity: .4; cursor: default; }
-
-/* ── PARENT VIEW ── */
-#parent-view { padding-bottom: 40px; }
-.p-header {
-  background: var(--bg2); border-bottom: 1px solid var(--border);
-  padding: 20px; text-align: center;
-}
-.p-header-label { font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 3px; color: var(--gold); text-transform: uppercase; }
-.p-header-title { font-family: 'Cinzel', serif; font-size: 22px; color: var(--gold2); margin-top: 4px; }
-.p-header-date { font-size: 13px; color: var(--text2); margin-top: 4px; }
-.date-nav {
-  display: flex; align-items: center; justify-content: center; gap: 10px;
-  margin-top: 10px;
-}
-.date-nav-btn {
-  width: 32px; height: 32px; border-radius: 8px;
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--gold2); font-size: 20px; line-height: 1;
-  cursor: pointer;
-}
-.date-nav-btn:disabled { opacity: .35; cursor: default; }
-.date-nav-label { min-width: 190px; text-align: center; }
-.yesterday-banner {
-  margin: 16px 16px 0;
-  background: rgba(200,168,75,.1); border: 1px solid rgba(200,168,75,.35);
-  border-radius: var(--radius); padding: 12px 14px;
-  color: var(--gold2); font-size: 15px; cursor: pointer; line-height: 1.45;
-}
-.yesterday-banner[hidden] { display: none; }
-
-.summary-box {
-  display: flex; justify-content: space-around;
-  padding: 16px; margin: 16px;
-  background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius);
-}
-.summary-stat-value { font-family: 'Cinzel', serif; font-size: 22px; color: var(--gold2); text-align: center; }
-.summary-stat-label { font-size: 12px; color: var(--text2); text-align: center; margin-top: 2px; }
-
-.parent-section { padding: 0 16px 16px; }
-
-.allen-panel {
-  margin: 0 16px 16px;
-  background: rgba(123,94,167,.1); border: 1px solid rgba(123,94,167,.3);
-  border-radius: var(--radius); padding: 16px;
-}
-.allen-header { font-family: 'Cinzel', serif; font-size: 13px; color: var(--accent); margin-bottom: 8px; }
-.allen-status { font-size: 15px; color: var(--text); margin-bottom: 10px; line-height: 1.5; }
-.allen-reminder { font-size: 13px; color: var(--text2); font-style: italic; line-height: 1.5; }
-
-.incident-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
-.incident-input {
-  flex: 1; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text); padding: 9px 12px;
-  font-family: 'Crimson Pro', Georgia, serif; font-size: 15px; outline: none;
-}
-.add-btn {
-  background: var(--red); color: #fff; border: none;
-  border-radius: 8px; padding: 9px 14px; cursor: pointer;
-  font-family: 'Cinzel', serif; font-size: 12px;
-}
-.incident-item {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 8px; padding: 10px 12px; margin-bottom: 6px;
-  font-size: 14px; color: var(--text);
-}
-
-.note-box {
-  margin: 0 16px 16px;
-  background: rgba(200,168,75,.06); border: 1px solid rgba(200,168,75,.2);
-  border-radius: var(--radius); padding: 12px 16px;
-  font-size: 14px; color: var(--text2); font-style: italic; text-align: center; line-height: 1.6;
-}
-.reset-btn {
-  display: block; margin: 0 16px;
-  background: var(--bg3); border: 1px solid var(--border);
-  color: var(--text2); padding: 12px; border-radius: var(--radius);
-  font-family: 'Cinzel', serif; font-size: 12px; cursor: pointer;
-  width: calc(100% - 32px); letter-spacing: 1px;
-}
-
-/* ── QUEST LIST (parent) ── */
-.parent-quest-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; background: var(--bg2);
-  border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px;
-}
-.parent-quest-name { flex: 1; font-size: 15px; }
-.parent-quest-check {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: 1.5px solid var(--border); background: var(--bg3);
-  font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center;
-  transition: all .2s;
-}
-.parent-quest-check.done { background: var(--green); border-color: var(--green); color: #fff; }
-
-/* ── SESSION TRANSCRIPTS ── */
-.transcript-panel {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); margin-bottom: 10px; overflow: hidden;
-}
-.transcript-header {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 12px 14px; cursor: pointer;
-  transition: background .2s;
-}
-.transcript-header:hover { background: var(--bg3); }
-.transcript-subj { font-family: 'Cinzel', serif; font-size: 13px; color: var(--gold2); }
-.transcript-time { font-size: 12px; color: var(--text2); }
-.transcript-toggle { font-size: 14px; color: var(--text2); transition: transform .2s; }
-.transcript-toggle.open { transform: rotate(180deg); }
-.transcript-body { display: none; border-top: 1px solid var(--border); padding: 12px; }
-.transcript-body.open { display: block; }
-.transcript-msg { margin-bottom: 10px; font-size: 14px; line-height: 1.5; }
-.transcript-msg .who {
-  font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 1px;
-  text-transform: uppercase; margin-bottom: 2px;
-}
-.transcript-msg.caldris-msg .who { color: var(--accent); }
-.transcript-msg.user-msg .who { color: var(--gold); }
-.transcript-msg.caldris-msg .what { color: var(--text); }
-.transcript-msg.user-msg .what { color: var(--text2); }
-
-/* ── MODE TOGGLE ── */
-.mode-toggle {
-  position: fixed; bottom: 20px; right: 20px;
-  background: var(--bg2); border: 1px solid var(--border);
-  color: var(--text2); padding: 10px 16px;
-  border-radius: 20px; font-family: 'Cinzel', serif;
-  font-size: 11px; letter-spacing: 1px; cursor: pointer;
-  transition: all .2s; z-index: 100;
-  box-shadow: 0 4px 20px rgba(0,0,0,.4);
-}
-.mode-toggle:hover { border-color: var(--gold); color: var(--gold); }
-
-/* ── PIN MODAL ── */
-.pin-overlay {
-  display: none; position: fixed; inset: 0;
-  background: rgba(0,0,0,.7); z-index: 200;
-  align-items: center; justify-content: center;
-}
-.pin-overlay.show { display: flex; }
-.pin-box {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 28px 24px;
-  text-align: center; max-width: 320px; width: 90%;
-}
-.pin-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold); margin-bottom: 8px; }
-.pin-sub { font-size: 14px; color: var(--text2); margin-bottom: 16px; }
-.pin-input {
-  background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 8px; color: var(--text); padding: 12px;
-  font-size: 20px; text-align: center; letter-spacing: 6px;
-  outline: none; width: 100%; margin-bottom: 12px;
-  -webkit-text-security: disc;
-}
-.pin-btns { display: flex; gap: 8px; }
-.pin-btn {
-  flex: 1; padding: 11px; border-radius: 8px; border: none;
-  cursor: pointer; font-family: 'Cinzel', serif; font-size: 12px;
-}
-.pin-btn.confirm { background: var(--accent); color: #fff; }
-.pin-btn.cancel { background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
-.pin-error { color: #e06060; font-size: 13px; margin-top: 8px; display: none; }
-
-/* ── SETUP SCREEN ── */
-.setup-screen {
-  min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  padding: 24px;
-}
-.setup-box {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 16px; padding: 32px 24px; max-width: 380px; width: 100%;
-  text-align: center;
-}
-.setup-orb { font-size: 48px; margin-bottom: 16px; }
-.setup-title { font-family: 'Cinzel', serif; font-size: 22px; color: var(--gold2); margin-bottom: 6px; }
-.setup-sub { font-size: 15px; color: var(--text2); margin-bottom: 24px; line-height: 1.5; }
-.setup-input {
-  width: 100%; background: var(--bg3); border: 1px solid var(--border);
-  border-radius: 10px; color: var(--text); padding: 12px 14px;
-  font-family: 'Crimson Pro', Georgia, serif; font-size: 16px;
-  outline: none; margin-bottom: 12px;
-}
-.setup-input:focus { border-color: var(--accent); }
-.setup-btn {
-  width: 100%; background: linear-gradient(135deg, var(--accent), #5a3e87);
-  color: #fff; border: none; border-radius: 10px; padding: 14px;
-  font-family: 'Cinzel', serif; font-size: 14px; letter-spacing: 1px;
-  cursor: pointer; transition: opacity .2s;
-}
-.setup-btn:hover { opacity: .9; }
-.setup-label { font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px; color: var(--text2); text-align: left; margin-bottom: 6px; margin-top: 4px; }
-
-/* Subject list items in parent */
-.acad-item {
-  display: flex; align-items: center; gap: 10px;
-  padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
-}
-.acad-item:last-child { border-bottom: none; }
-.acad-status { font-size: 16px; }
-.acad-name { flex: 1; color: var(--text); }
-.acad-level { font-size: 12px; color: var(--text2); }
-
-/* ── BASS BUDDY DOCK ── */
-.dock-banner {
-  margin: 16px;
-  padding: 14px 16px;
-  border-radius: var(--radius);
-  border: 1px solid var(--gold);
-  background: var(--bg2);
-  display: flex; align-items: center; gap: 12px;
-  cursor: pointer;
-}
-.dock-banner:hover { background: var(--bg3); }
-.dock-banner img {
-  width: 52px; height: 52px; border-radius: 50%;
-  object-fit: cover; border: 2px solid var(--gold);
-}
-.dock-banner-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--gold2); }
-.dock-banner-sub { font-size: 13px; color: var(--text2); margin-top: 2px; }
-.codex-link {
-  margin: 0 16px 16px;
-  display: block; text-align: center;
-  background: none; border: none; cursor: pointer;
-  font-family: 'Cinzel', serif; font-size: 12px;
-  letter-spacing: 1px; color: var(--gold);
-}
-.dock-hero {
-  position: relative; min-height: 220px; overflow: hidden;
-  border-bottom: 1px solid var(--border);
-}
-.dock-hero img.dock-hero-art {
-  position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; object-position: center 60%;
-}
-.dock-hero-shade {
-  position: absolute; inset: 0;
-  background: linear-gradient(180deg, rgba(8,10,16,.2), rgba(11,11,18,.92));
-}
-.dock-hero-copy { position: relative; z-index: 1; padding: 18px 20px; text-align: center; }
-.companion-label { font-size: 13px; color: var(--gold); letter-spacing: 1px; }
-.gear-row { display: flex; justify-content: center; gap: 10px; margin: 12px 16px 4px; }
-.gear-piece {
-  flex: 1; max-width: 110px; padding: 10px 8px;
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 10px; text-align: center;
-}
-.gear-piece.on { border-color: var(--gold); }
-.gear-piece .g-name { font-family: 'Cinzel', serif; font-size: 11px; color: var(--gold); letter-spacing: 1px; }
-.gear-piece .g-tier { font-size: 13px; color: var(--ivory); margin-top: 4px; }
-.gear-piece .g-graphic {
-  height: 36px; margin: 6px auto 4px;
-  display: flex; align-items: flex-end; justify-content: center;
-}
-.g-pole, .g-reel, .g-lure { background: #2a2a40; }
-.gear-piece.on .g-pole,
-.gear-piece.on .g-reel,
-.gear-piece.on .g-lure { background: linear-gradient(180deg, var(--gold2), var(--crimson)); }
-.g-pole { width: 6px; height: 32px; border-radius: 3px; transform: rotate(-18deg); }
-.g-reel { width: 22px; height: 22px; border-radius: 50%; border: 3px solid #2a2a40; box-sizing: border-box; }
-.gear-piece.on .g-reel { border-color: var(--gold); }
-.g-lure { width: 14px; height: 22px; border-radius: 2px 2px 10px 10px; transform: rotate(20deg); }
-.dupe-hint { font-size: 13px; color: var(--text2); text-align: center; margin: 0 16px 8px; }
-.cast-panel { margin: 16px; text-align: center; }
-.cast-btn {
-  width: 100%; background: linear-gradient(135deg, var(--crimson), #6a2030);
-  color: var(--ivory); border: 1px solid var(--gold);
-  border-radius: 12px; padding: 16px;
-  font-family: 'Cinzel', serif; font-size: 18px; letter-spacing: 2px;
-  cursor: pointer;
-}
-.cast-btn:disabled { opacity: .4; cursor: default; }
-.cast-status { font-size: 14px; color: var(--text2); margin: 10px 0 0; }
-.cast-result {
-  margin: 16px; padding: 16px;
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: var(--radius); text-align: center; min-height: 120px;
-}
-.cast-result.hit { border-color: var(--gold); }
-.fish-art {
-  width: 120px; height: 80px; margin: 8px auto;
-  border-radius: 10px; background: #141228;
-  display: flex; align-items: center; justify-content: center;
-  overflow: hidden; border: 1px solid var(--border);
-}
-.fish-art img { width: 100%; height: 100%; object-fit: cover; }
-.fish-rarity {
-  font-family: 'Cinzel', serif; font-size: 11px; letter-spacing: 2px;
-  text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
-}
-.fish-name { font-family: 'Cinzel', serif; font-size: 20px; color: var(--ivory); }
-.buddy-line { font-size: 15px; color: var(--text); font-style: italic; margin-top: 10px; line-height: 1.5; }
-.codex-grid { padding: 0 16px 24px; display: flex; flex-direction: column; gap: 8px; }
-.codex-row {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 10px; padding: 10px 12px;
-}
-.codex-row.locked { opacity: .45; }
-.codex-thumb {
-  width: 56px; height: 40px; border-radius: 8px;
-  background: #141228; overflow: hidden; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  color: var(--text2); font-size: 12px;
-}
-.codex-thumb img { width: 100%; height: 100%; object-fit: cover; }
-.codex-name { font-family: 'Cinzel', serif; font-size: 14px; color: var(--gold2); }
-.codex-meta { font-size: 12px; color: var(--text2); }
-.rarity-common { color: #c8c4bc; }
-.rarity-uncommon { color: #6aaa7a; }
-.rarity-rare { color: #7b9ed4; }
-.rarity-exotic { color: var(--gold2); }
-</style>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/images/caldris.jpg">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@500;700;800&family=Cinzel:wght@400;600;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
 </head>
 <body>
+<div id="burst-layer" aria-hidden="true"></div>
 <div id="app">
 
-  <!-- SETUP SCREEN -->
-  <div id="setup-screen" class="setup-screen" style="display:none;">
+  <div id="setup-screen" class="setup-screen" hidden>
     <div class="setup-box">
-      <div class="setup-orb">✦</div>
+      <div class="setup-orb"><img src="assets/images/caldris.jpg" alt="Caldris, your teacher"></div>
       <div class="setup-title">The Realm of Caldris</div>
-      <div class="setup-sub">Welcome, young adventurer. Before your journey begins, we must know your name — and a secret code for your guardian.</div>
-      <div class="setup-label">Your Name</div>
-      <input class="setup-input" id="setup-name" placeholder="e.g. Matthew" maxlength="30" />
-      <div class="setup-label">Parent PIN (4 digits)</div>
-      <input class="setup-input" id="setup-pin" type="tel" placeholder="e.g. 1234" maxlength="4" inputmode="numeric" />
-      <button class="setup-btn" onclick="doSetup()">Begin the Quest ✦</button>
+      <div class="setup-sub">Hi! I am Caldris, your teacher. Tell me your name, and a secret 4-digit code for your grown-up.</div>
+      <label class="setup-label" for="setup-name">Your Name</label>
+      <input class="setup-input" id="setup-name" placeholder="e.g. Matthew" maxlength="30" autocomplete="nickname">
+      <label class="setup-label" for="setup-pin">Parent PIN (4 digits)</label>
+      <input class="setup-input" id="setup-pin" type="password" inputmode="numeric" placeholder="••••" maxlength="4" autocomplete="off">
+      <button class="setup-btn" type="button" id="setup-btn">Let’s go!</button>
     </div>
   </div>
 
-  <!-- HUB VIEW -->
   <div id="hub-view" class="view">
-    <img class="hub-hero hidden" id="hub-hero" alt="The Realm of Caldris" />
-    <div class="app-header">
-      <div class="app-header-eyebrow">The Realm of Caldris</div>
-      <img class="player-avatar hidden" id="player-avatar" alt="Your character" />
-      <div class="caldris-orb" id="hub-orb">✦</div>
-      <div class="app-header-name" id="hub-name">Adventurer</div>
-      <div class="app-header-date" id="hub-date"></div>
-    </div>
-
-    <div class="dock-banner" id="dock-banner" onclick="openDock()">
-      <img src="assets/images/sidekick.png" alt="Bass Buddy">
-      <div class="tv-info">
-        <div class="dock-banner-title">Bass Buddy's Dock</div>
-        <div class="dock-banner-sub" id="dock-banner-sub">Finish a subject to earn a cast</div>
+    <div class="realm-bg campus-hero" id="realm-bg">
+      <div class="lantern-glow a"></div>
+      <div class="lantern-glow b"></div>
+      <div class="hud">
+        <div class="hero-stack">
+          <div class="avatar-wrap"><img class="player-avatar" id="player-avatar" src="assets/images/matthew.png" alt="Matthew the Adventurer"></div>
+          <img class="guide-avatar" id="hub-caldris" src="assets/images/caldris.jpg" alt="Caldris">
+          <img class="sidekick-avatar" src="assets/images/sidekick.png" alt="Bass Buddy">
+        </div>
+        <div class="hud-copy">
+          <div class="eyebrow">Campus Map</div>
+          <div class="hero-name" id="hub-name">Adventurer</div>
+          <div class="hero-meta" id="hub-meta"></div>
+          <div class="streak-chip" id="streak-chip">⭐ Adventurer</div>
+        </div>
       </div>
     </div>
-    <button class="codex-link" onclick="openCodex()">Fish Codex</button>
+    <div class="speech-bubble hub-bubble" id="hub-line">Tap a colorful room. I will teach one idea, then you can ask me anything.</div>
+    <div class="sound-enable" id="sound-banner">
+      <div>Tap once so Caldris can talk. Voice stays on after that.</div>
+      <button type="button" class="chunky-btn" id="enable-sound-btn">Enable teacher voice</button>
+    </div>
 
-    <div class="tv-banner" id="tv-banner">
-      <div class="tv-icon" id="tv-icon">📺🔒</div>
+    <div class="tv-banner" id="tv-banner" role="status">
+      <div class="tv-icon" id="tv-icon" aria-hidden="true">📺🔒</div>
       <div class="tv-info">
         <div class="tv-status-label">Screen Time Gateway</div>
         <div class="tv-status-main" id="tv-status-main">LOCKED</div>
-        <div class="tv-status-sub" id="tv-status-sub">Complete all quests to unlock</div>
+        <div class="tv-status-sub" id="tv-status-sub">Stamp all 5 rooms to unlock</div>
       </div>
     </div>
 
     <div class="xp-section">
       <div class="xp-header">
-        <span class="xp-label">Daily XP</span>
-        <span class="xp-count" id="xp-display">0 / 100 XP</span>
+        <span class="xp-label">Star path</span>
+        <span class="xp-count" id="xp-display">0 / 110 XP</span>
       </div>
-      <div class="xp-bar-track">
-        <div class="xp-bar-fill" id="xp-bar" style="width:0%"></div>
+      <div class="xp-bar-track" aria-hidden="true">
+        <div class="xp-bar-fill" id="xp-bar"></div>
       </div>
-      <div class="xp-threshold-text" id="threshold-text">Earn 75 XP to unlock screen time</div>
+      <div class="xp-threshold-text" id="threshold-text">Stars cheer. The TV gate still needs every room.</div>
     </div>
 
-    <div class="section-title">Today's Subjects</div>
-    <div class="subjects" id="subjects"></div>
+    <div class="section-title">Tap a room</div>
+    <div class="campus-grid" id="subjects"></div>
+
+    <div class="dock-banner" id="dock-banner" role="button" tabindex="0">
+      <img src="assets/images/sidekick.png" alt="">
+      <div class="tv-info">
+        <div class="dock-banner-title subj-name">Bass Buddy’s Dock</div>
+        <div class="dock-banner-sub tv-status-sub" id="dock-banner-sub">Bonus only — fishing never unlocks TV</div>
+      </div>
+    </div>
+    <button class="codex-link" type="button" id="journal-link">Star Journal</button>
   </div>
 
-  <!-- CHAT VIEW -->
-  <div id="chat-view" class="view">
-    <div class="chat-hd">
-      <button class="back-btn" onclick="closeChat()">←</button>
-      <div class="chat-orb" id="chat-orb">✦</div>
-      <div class="chat-hd-info">
-        <div class="chat-hd-name">Caldris</div>
-        <div class="chat-hd-sub" id="chat-subj-label">Guide of Worlds</div>
+  <div id="quest-view" class="view">
+    <div class="room-shell" id="room-shell">
+      <div class="quest-hd">
+        <button class="back-btn" type="button" id="quest-back" aria-label="Back to campus">←</button>
+        <div class="teacher-portrait">
+          <img class="guide-avatar" id="quest-caldris" src="assets/images/caldris.jpg" alt="Caldris the teacher">
+          <button class="speaker-btn" type="button" id="teacher-speaker" aria-label="Teacher voice">🔊</button>
+        </div>
+        <div class="quest-hd-copy">
+          <div class="quest-hd-name" id="quest-title">Classroom</div>
+          <div class="quest-hd-sub" id="quest-sub">Caldris</div>
+        </div>
+        <div class="room-hud-avatars">
+          <img class="player-avatar tiny" src="assets/images/matthew.png" alt="Matthew">
+          <img class="sidekick-avatar tiny" src="assets/images/sidekick.png" alt="Bass Buddy">
+        </div>
+        <div class="done-badge" id="done-badge">⭐ STAMP</div>
       </div>
-      <button class="voice-btn" id="voice-btn" onclick="toggleTTS()">🔊</button>
-      <div class="done-badge" id="done-badge">✦ COMPLETE</div>
+      <div class="beat-dots" id="beat-dots"></div>
+      <div class="room-hotspots" aria-label="Classroom hotspots">
+        <button type="button" class="hotspot" id="hot-board">chalkboard</button>
+        <button type="button" class="hotspot" id="hot-book">hint book</button>
+        <button type="button" class="hotspot" id="hot-stars">star jar</button>
+      </div>
+      <div class="quest-body">
+        <div class="speech-bubble teacher-bubble" id="teacher-bubble">
+          <div class="prompt" id="quest-prompt">Caldris is ready.</div>
+          <div class="bubble-actions">
+            <button type="button" class="mini-chunky" id="replay-btn">Replay</button>
+            <button type="button" class="mini-chunky ghost" id="skip-talk-btn">Skip talking</button>
+          </div>
+        </div>
+        <div class="practice-banner" id="practice-banner" hidden>Teacher is offline — practice mode</div>
+        <div class="passage hidden" id="quest-passage"></div>
+        <div class="answer-stage" id="quest-stage"></div>
+        <div class="hint" id="quest-hint"></div>
+        <div class="reaction">
+          <img src="assets/images/sidekick.png" alt="Bass Buddy">
+          <div id="sidekick-line">Ask Caldris anything. I brought snacks.</div>
+        </div>
+        <button type="button" class="chunky-btn next-btn" id="next-btn" hidden>Next</button>
+      </div>
     </div>
-    <div class="chat-msgs" id="chat-msgs"></div>
-    <div class="mic-status" id="mic-status-bar">Tap 🎤 to speak your answer</div>
-    <div class="input-bar">
-      <button class="mic-btn" id="mic-btn" onclick="toggleMic()" title="Hold to speak">🎤</button>
-      <textarea class="chat-in" id="chat-in" placeholder="Type your answer here..." rows="1"></textarea>
-      <button class="send-btn" id="send-btn" onclick="handleSend()">➤</button>
+    <div class="mic-status" id="mic-status-bar">Hold 🎤 to talk, or type a question.</div>
+    <div class="input-bar" id="type-bar">
+      <button class="mic-btn" id="mic-btn" type="button" title="Talk to Caldris" aria-label="Talk to Caldris">🎤</button>
+      <textarea class="chat-in" id="chat-in" placeholder="Ask Caldris…" rows="1" aria-label="Ask Caldris"></textarea>
+      <button class="send-btn" type="button" id="send-btn" aria-label="Send">Send</button>
     </div>
   </div>
 
-  <!-- PARENT VIEW -->
   <div id="parent-view" class="view">
     <div class="p-header">
       <div class="p-header-label">Parent Dashboard</div>
-      <div class="p-header-title" id="parent-title">Today's Report</div>
+      <div class="p-header-title" id="parent-title">Today’s Report</div>
       <div class="date-nav">
-        <button type="button" class="date-nav-btn" id="parent-prev-day" onclick="shiftParentDay(-1)" aria-label="Previous day">‹</button>
-        <div class="p-header-date date-nav-label" id="parent-date"></div>
-        <button type="button" class="date-nav-btn" id="parent-next-day" onclick="shiftParentDay(1)" aria-label="Next day">›</button>
+        <button type="button" class="date-nav-btn" id="parent-prev-day" aria-label="Previous day">‹</button>
+        <div class="p-header-date date-nav-label" id="parent-date">—</div>
+        <button type="button" class="date-nav-btn" id="parent-next-day" aria-label="Next day">›</button>
       </div>
     </div>
-
-    <div class="yesterday-banner" id="yesterday-banner" hidden onclick="openYesterdayReport()"></div>
-
+    <div class="yesterday-banner" id="yesterday-banner" hidden></div>
     <div class="summary-box">
       <div><div class="summary-stat-value" id="p-xp">0</div><div class="summary-stat-label">XP Earned</div></div>
-      <div><div class="summary-stat-value" id="p-subjects">0/5</div><div class="summary-stat-label">Subjects Done</div></div>
+      <div><div class="summary-stat-value" id="p-subjects">0/5</div><div class="summary-stat-label">Quests Done</div></div>
       <div><div class="summary-stat-value" id="p-tv">🔴</div><div class="summary-stat-label">TV Status</div></div>
     </div>
-
     <div class="allen-panel">
-      <div class="allen-header">📋 Status Snapshot</div>
-      <div class="allen-status" id="allen-status">Loading...</div>
-      <div class="allen-reminder">Hold the line — even if Matthew says "oh well, I lost it anyway." The path back is <em>always</em> open. Don't soften before all quests are done.</div>
+      <div class="allen-header">Status Snapshot</div>
+      <div class="allen-status" id="allen-status">Opening the ledger…</div>
+      <div class="snapshot-grid" id="snapshot-grid"></div>
+      <div class="teacher-api-debug" id="teacher-api-status">Teacher API: idle</div>
+      <div class="allen-reminder">Hold the line — even if Matthew says “oh well, I lost it anyway.” The path back is always open tomorrow. Don’t soften before all quests are done.</div>
     </div>
-
-    <!-- Academy subjects status -->
+    <div class="parent-section" id="tv-override-section">
+      <div class="section-title">TV Override</div>
+      <div class="tv-controls">
+        <button type="button" class="unlock" id="tv-unlock-btn">Unlock TV today (override)</button>
+        <button type="button" class="lock" id="tv-lock-btn">Re-lock TV</button>
+      </div>
+    </div>
     <div class="parent-section">
       <div class="section-title">Academy Progress</div>
-      <div id="academy-subject-list"
-           style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;"></div>
+      <div id="academy-subject-list" style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:8px 14px;"></div>
     </div>
-
-    <!-- Session transcripts -->
     <div class="parent-section">
-      <div class="section-title" id="transcript-section-title">Today's Session Transcripts</div>
+      <div class="section-title" id="transcript-section-title">Today’s Session Transcripts</div>
       <div id="transcript-list"></div>
     </div>
-
-    <!-- Quest controls -->
     <div class="parent-section" id="parent-quest-section">
       <div class="section-title">Quest Controls</div>
       <div id="parent-quest-list"></div>
     </div>
-
-    <!-- Incident log -->
     <div class="parent-section">
       <div class="section-title">Incident Log</div>
       <div class="incident-input-row" id="incident-input-row">
-        <input class="incident-input" id="incident-input" placeholder="What happened?" />
-        <button class="add-btn" onclick="addIncident()">Log It</button>
+        <input class="incident-input" id="incident-input" placeholder="What happened?" aria-label="Incident note">
+        <button class="add-btn" type="button" id="log-incident-btn">Log It</button>
       </div>
       <div id="incident-list"></div>
     </div>
-
+    <div class="parent-section" id="pin-change-section">
+      <div class="section-title">Change PIN</div>
+      <div class="pin-row">
+        <input class="pin-change-input" id="pin-old" type="password" inputmode="numeric" maxlength="4" placeholder="Current PIN" autocomplete="off">
+        <input class="pin-change-input" id="pin-new" type="password" inputmode="numeric" maxlength="4" placeholder="New 4-digit PIN" autocomplete="off">
+        <button type="button" class="secondary-btn" id="pin-change-btn">Save new PIN</button>
+        <div id="pin-change-msg" class="codex-meta"></div>
+      </div>
+    </div>
     <div class="note-box" id="parent-note-box">TV is earned fresh each day — not taken away forever.<br>Tomorrow is always a clean slate.</div>
-    <button class="reset-btn" id="parent-reset-btn" onclick="confirmReset()">↺ Reset for New Day</button>
+    <button class="reset-btn" id="parent-reset-btn" type="button">↺ Reset for New Day</button>
   </div>
 
-  <!-- DOCK VIEW -->
   <div id="dock-view" class="view">
     <div class="dock-hero">
       <img class="dock-hero-art" src="assets/images/realm-campsite.jpg" alt="The dock on the river">
       <div class="dock-hero-shade"></div>
       <div class="dock-hero-copy">
-        <div class="app-header-eyebrow">Bass Buddy's Dock</div>
-        <div class="caldris-orb"><img src="assets/images/sidekick.png" alt="Bass Buddy"></div>
+        <div class="eyebrow">Bass Buddy’s Dock</div>
+        <div class="setup-orb" style="margin-top:8px"><img src="assets/images/sidekick.png" alt="Bass Buddy"></div>
         <div class="companion-label">Bass Buddy</div>
         <div class="app-header-date" id="dock-cast-count">0 casts ready</div>
+        <div class="tv-status-sub">Fishing never opens the TV gate. It is bonus only.</div>
       </div>
     </div>
     <div class="gear-row" id="gear-row"></div>
     <div class="dupe-hint" id="dupe-hint"></div>
     <div class="cast-panel">
-      <button class="cast-btn" id="cast-btn" onclick="doCast()">CAST</button>
-      <div class="cast-status" id="cast-status">Earn a cast by finishing a subject.</div>
+      <button class="cast-btn" id="cast-btn" type="button">CAST</button>
+      <div class="cast-status" id="cast-status">Earn a cast by finishing a quest.</div>
     </div>
     <div class="cast-result" id="cast-result">
       <div class="buddy-line">The water is waiting. I have opinions about this river.</div>
     </div>
-    <button class="codex-link" onclick="openCodex()">Open the Codex</button>
-    <button class="reset-btn" onclick="showHub()">← Back to the Hub</button>
+    <button class="codex-link" type="button" id="open-codex-btn">Open the Codex</button>
+    <button class="reset-btn" type="button" id="dock-back">← Back to campus</button>
   </div>
 
-  <!-- CODEX VIEW -->
   <div id="codex-view" class="view">
     <div class="p-header">
       <div class="p-header-label">Bass Buddy</div>
@@ -786,1112 +231,52 @@ body {
       <div class="p-header-date" id="codex-progress"></div>
     </div>
     <div class="codex-grid" id="codex-grid"></div>
-    <button class="reset-btn" onclick="showHub()">← Back to the Hub</button>
+    <button class="reset-btn" type="button" id="codex-back">← Back to campus</button>
+  </div>
+
+  <div id="journal-view" class="view">
+    <div class="p-header">
+      <div class="p-header-label">Collection</div>
+      <div class="p-header-title">Star Journal</div>
+      <div class="p-header-date" id="journal-meta"></div>
+    </div>
+    <div class="parent-section">
+      <div class="section-title">Room stamps</div>
+      <div id="stamp-book"></div>
+    </div>
+    <div class="parent-section">
+      <div class="section-title">Fish (bonus)</div>
+      <div class="codex-grid" id="journal-fish"></div>
+    </div>
+    <button class="reset-btn" type="button" id="journal-back">← Back to campus</button>
   </div>
 
 </div>
 
-<!-- Mode toggle (bottom right) -->
-<button class="mode-toggle" id="mode-toggle" onclick="toggleMode()">⚙ Parent Mode</button>
+<button class="mode-toggle" id="mode-toggle" type="button">⚙ Parent Mode</button>
 
-<!-- PIN modal -->
-<div class="pin-overlay" id="pin-overlay">
+<div class="tap-to-hear" id="tap-to-hear" hidden>
+  <button type="button" class="chunky-btn" id="tap-to-hear-btn">Tap to hear Caldris</button>
+</div>
+
+<div class="pin-overlay" id="pin-overlay" role="dialog" aria-modal="true" aria-labelledby="pin-title">
   <div class="pin-box">
-    <div class="pin-title">Parent Access</div>
+    <div class="pin-title" id="pin-title">Parent Access</div>
     <div class="pin-sub">Enter your 4-digit PIN to continue</div>
-    <input class="pin-input" id="pin-input" type="tel" maxlength="4" inputmode="numeric"
-           onkeydown="if(event.key==='Enter')confirmPin()" />
+    <input class="pin-input" id="pin-input" type="password" inputmode="numeric" maxlength="4" autocomplete="off" aria-label="Parent PIN">
     <div class="pin-btns">
-      <button class="pin-btn cancel" onclick="cancelPin()">Cancel</button>
-      <button class="pin-btn confirm" onclick="confirmPin()">Enter</button>
+      <button class="pin-btn cancel" type="button" id="pin-cancel">Cancel</button>
+      <button class="pin-btn confirm" type="button" id="pin-confirm">Enter</button>
     </div>
     <div class="pin-error" id="pin-error">Incorrect PIN. Try again.</div>
   </div>
 </div>
 
-<script src="lib/fishing.js"></script>
 <script src="lib/progress.js"></script>
-<script>
-// ══════════════════════════════════════════════════════
-// CONSTANTS & STATE
-// ══════════════════════════════════════════════════════
-const TODAY        = new Date().toDateString();
-const fishing      = (window.CaldrisFishing && CaldrisFishing.create({ today: TODAY })) || null;
-const SHARED_KEY   = 'mq_ecosystem_v1';
-const LEVELS_KEY   = 'mq_levels_v1';
-const SESSION_KEY  = 'mq_acad_v3';
-const SUMMARY_KEY  = 'mq_summaries_v1';
-const PROFILE_KEY  = 'mq_profile_v1';   // PERSISTENT — child name + parent PIN + setup flag (survive daily reset)
-const TV_XP        = 75;
-
-// ── GRADE LEVELS ──
-// Every subject tracks a school GRADE for the student. A brand-new student
-// ALWAYS starts at Grade 1 (first grade). The student only moves up a grade
-// when Caldris judges that real mastery has been demonstrated and emits the
-// [GRADE_UP] marker — advancement is earned, never automatic.
-const MIN_GRADE = 1;
-const MAX_GRADE = 12;
-const GRADE_UP_MARKER = '[GRADE_UP]';
-
-const SUBJECTS = [
-  {id:'reading', name:'Reading',            desc:'Passage + comprehension with Caldris', icon:'📖', xp:25, color:'#4a7fa5', ibg:'rgba(74,127,165,.14)',  model:'claude-opus-4-6',      qbLink:['reading']},
-  {id:'writing', name:'Writing & Spelling', desc:'Spelling drill + writing prompt',      icon:'✍️', xp:25, color:'#7b5ea7', ibg:'rgba(123,94,167,.14)', model:'claude-sonnet-5', qbLink:['writing','math']},
-  {id:'math',    name:'Math',               desc:'Real-world problems with Caldris',     icon:'🔢', xp:25, color:'#2a8070', ibg:'rgba(42,128,112,.14)', model:'claude-sonnet-5', qbLink:['writing','math']},
-  {id:'life',    name:'Life Skills',         desc:'Practical knowledge for the real world', icon:'⚔️', xp:20, color:'#9a7020', ibg:'rgba(154,112,32,.12)', model:'claude-opus-4-6',      qbLink:[]},
-  {id:'pe',      name:'Physical Ed',         desc:'Movement quest — get outside',        icon:'🏃', xp:15, color:'#3d8a5c', ibg:'rgba(61,138,92,.12)',  model:'claude-sonnet-5', qbLink:[]},
-];
-
-// ── ARTWORK ──
-// Generated images for the app. Leave a value as '' to fall back to the
-// default emoji/plain look. Drop new files into assets/images/ and point the
-// matching entry here — that's all it takes to add more art.
-const IMAGES = {
-  mainRealm: 'assets/images/realm-main.jpg',   // Hero banner at the top of the Quest Hub
-  player:    'assets/images/matthew.png',       // The student's own character (shown on the Quest Hub)
-  caldris:   'assets/images/caldris.jpg',       // Chat avatar next to "Caldris" (placeholder art for now)
-  sidekick:  'assets/images/sidekick.png',      // Sidekick art (transparent) — not placed on screen yet
-  // Per-realm (subject) artwork, keyed by subject id.
-  realms: {
-    reading: '',
-    writing: '',
-    math:    '',
-    life:    '',
-    pe:      'assets/images/realm-campsite.jpg',
-  },
-};
-
-// Apply the Caldris portrait to the chat avatar.
-function applyCaldrisAvatar() {
-  if (!IMAGES.caldris) return;
-  const el = document.getElementById('chat-orb');
-  if (!el) return;
-  el.style.backgroundImage = `url('${IMAGES.caldris}')`;
-  el.style.backgroundSize = 'cover';
-  el.style.backgroundPosition = 'center';
-  el.textContent = '';
-}
-
-// Show the student's own character on the Quest Hub (falls back to the orb).
-function applyPlayerAvatar() {
-  const pa  = document.getElementById('player-avatar');
-  const orb = document.getElementById('hub-orb');
-  if (!pa) return;
-  if (IMAGES.player) {
-    pa.src = IMAGES.player;
-    pa.classList.remove('hidden');
-    if (orb) orb.style.display = 'none';
-  } else {
-    pa.classList.add('hidden');
-    if (orb) orb.style.display = '';
-  }
-}
-
-// Apply the hero banner on the Quest Hub.
-function applyHubHero() {
-  const hero = document.getElementById('hub-hero');
-  if (!hero) return;
-  if (IMAGES.mainRealm) {
-    hero.src = IMAGES.mainRealm;
-    hero.classList.remove('hidden');
-  } else {
-    hero.classList.add('hidden');
-  }
-}
-
-const progress = (window.CaldrisProgress && CaldrisProgress.create({ today: TODAY, subjects: SUBJECTS })) || null;
-
-let activeSubject = null;
-let chatHistory   = [];   // API message history
-let chatMessages  = [];   // Display messages
-let busy          = false;
-let ttsEnabled    = true;
-let caldrisVoice  = null;
-let recognition   = null;
-let isListening   = false;
-let userEditing   = false;  // FIX: prevents mic from overwriting user edits
-let questDone     = false;
-let parentViewDate = TODAY;
-
-// ══════════════════════════════════════════════════════
-// STORAGE
-// ══════════════════════════════════════════════════════
-function getSession() {
-  return progress.getSession();
-}
-function saveSession(s) {
-  progress.saveSession(s);
-}
-
-// Persistent profile: child name + parent PIN + setup flag. Unlike the daily
-// session this is NOT date-gated, so it carries over from day to day.
-function getProfile() {
-  return progress.getProfile();
-}
-function saveProfile(p) {
-  progress.saveProfile(p);
-}
-
-function getLevels() {
-  try { return JSON.parse(localStorage.getItem(LEVELS_KEY)) || {}; } catch(e) { return {}; }
-}
-function saveLevels(l) {
-  try { localStorage.setItem(LEVELS_KEY, JSON.stringify(l)); } catch(e) {}
-}
-
-// A subject's current school grade. Defaults to Grade 1 for any new student
-// (no stored value) and is clamped to the 1..12 range. Grades live inside the
-// existing levels object under a `<subjectId>_grade` key.
-function getGrade(subjectId, levels) {
-  const l = levels || getLevels();
-  const g = parseInt(l[subjectId + '_grade'], 10);
-  if (!Number.isFinite(g) || g < MIN_GRADE) return MIN_GRADE;
-  return Math.min(g, MAX_GRADE);
-}
-function setGrade(subjectId, grade) {
-  const l = getLevels();
-  l[subjectId + '_grade'] = Math.max(MIN_GRADE, Math.min(grade, MAX_GRADE));
-  saveLevels(l);
-  return l[subjectId + '_grade'];
-}
-
-// Kid-friendly grade wording, e.g. gradeName(1) -> "1st Grade".
-function ordinal(n) {
-  const s = ['th','st','nd','rd'], v = n % 100;
-  return n + (s[(v - 20) % 10] || s[v] || s[0]);
-}
-function gradeName(grade) {
-  return ordinal(grade) + ' Grade';
-}
-
-// Pure helper: given a raw AI reply, report which markers it contains and the
-// text to actually display (markers stripped out).
-function parseReply(rawText) {
-  const text = rawText || '';
-  return {
-    complete: text.includes('[QUEST_COMPLETE]'),
-    gradeUp:  text.includes(GRADE_UP_MARKER),
-    display:  text.replace(/\[QUEST_COMPLETE\]/g, '').replace(/\[GRADE_UP\]/g, '').trim(),
-  };
-}
-
-function getShared() {
-  try {
-    const r = localStorage.getItem(SHARED_KEY);
-    if (r) { const s = JSON.parse(r); if (s.date === TODAY) return s; }
-  } catch(e) {}
-  return { date: TODAY, academy: {} };
-}
-function saveShared(s) {
-  try { localStorage.setItem(SHARED_KEY, JSON.stringify(s)); } catch(e) {}
-}
-
-// Session transcripts
-function getSummaries() {
-  return progress.getSummaries();
-}
-function saveSummary(subjectId, messages) {
-  progress.saveSummary(subjectId, messages);
-}
-
-// ══════════════════════════════════════════════════════
-// SETUP
-// ══════════════════════════════════════════════════════
-function doSetup() {
-  const name = document.getElementById('setup-name').value.trim();
-  const pin  = document.getElementById('setup-pin').value.trim();
-  if (!name) { alert('Please enter your name.'); return; }
-  if (pin.length < 4 || !/^\d+$/.test(pin)) { alert('PIN must be 4 digits.'); return; }
-  saveProfile({ name, pin, setupDone: true });
-  const s = getSession();
-  s.name = name; s.pin = pin; s.setupDone = true;
-  saveSession(s);
-  document.getElementById('setup-screen').style.display = 'none';
-  showHub();
-}
-
-// ══════════════════════════════════════════════════════
-// VOICE / TTS  — warm, inviting, slightly-British delivery
-// ══════════════════════════════════════════════════════
-// Ordered preference list of known-good English (British) voices across
-// platforms. We pick the first that exists on the device, then fall back to
-// any en-GB voice, then any English voice, then the browser default.
-const BRITISH_VOICE_PREFERENCES = [
-  'Google UK English Male',   // Chrome / Chrome OS — warm, natural en-GB
-  'Google UK English Female', // Chrome / Chrome OS — warm, natural en-GB
-  'Daniel',                   // macOS / iOS — classic gentle British male
-  'Arthur',                   // macOS — warm British male
-  'Oliver',                   // macOS — friendly British male
-  'Serena',                   // macOS — soft British female
-  'Kate',                     // macOS — friendly British female
-  'Microsoft Ryan Online (Natural) - English (United Kingdom)', // Edge neural en-GB male
-  'Microsoft Sonia Online (Natural) - English (United Kingdom)', // Edge neural en-GB female
-  'Microsoft Libby Online (Natural) - English (United Kingdom)', // Edge neural en-GB female
-  'Ryan',                     // Windows en-GB male (short name)
-  'Sonia',                    // Windows en-GB female (short name)
-  'Libby',                    // Windows en-GB female (short name)
-  'George',                   // Windows en-GB male
-  'Hazel',                    // Windows en-GB female
-];
-
-// Pure voice-picker: given a list of SpeechSynthesisVoice-like objects,
-// return the best warm/British match, or null if the list is empty.
-// Never throws, even on empty/garbage input.
-function pickCaldrisVoice(voices) {
-  if (!Array.isArray(voices) || voices.length === 0) return null;
-  const byName = (name) =>
-    voices.find(v => v && typeof v.name === 'string' &&
-      v.name.toLowerCase() === name.toLowerCase());
-  // 1) Exact preferred names, in priority order.
-  for (const name of BRITISH_VOICE_PREFERENCES) {
-    const hit = byName(name);
-    if (hit) return hit;
-  }
-  const langStarts = (prefix) =>
-    voices.find(v => v && typeof v.lang === 'string' &&
-      v.lang.toLowerCase().startsWith(prefix));
-  // 2) Any British English voice, 3) any English voice, 4) browser default.
-  return langStarts('en-gb') || langStarts('en') || voices[0] || null;
-}
-
-function initVoice() {
-  const chosen = pickCaldrisVoice(speechSynthesis.getVoices());
-  if (chosen) caldrisVoice = chosen;  // keep prior choice if list is momentarily empty
-}
-speechSynthesis.onvoiceschanged = initVoice;
-initVoice();
-setInterval(() => { if (speechSynthesis.paused) speechSynthesis.resume(); }, 4000);
-
-function speak(text) {
-  if (!ttsEnabled) return;
-  speechSynthesis.cancel();
-  const clean = text
-    .replace(/\[QUEST_COMPLETE\]/g, '')
-    .replace(/\[GRADE_UP\]/g, '')
-    .replace(/\*\*(.*?)\*\*/g, '$1')
-    .replace(/[#_~`>*]/g, '')
-    .replace(/<[^>]+>/g, '')
-    .trim();
-  if (!clean) return;
-  const u = new SpeechSynthesisUtterance(clean);
-  if (caldrisVoice) u.voice = caldrisVoice;
-  // Warm, inviting delivery for a young listener: a touch slower than default
-  // so words are easy to follow, a hair above default pitch for friendliness,
-  // and full comfortable volume.
-  u.rate   = 0.9;
-  u.pitch  = 1.05;
-  u.volume = 1.0;
-  u.onstart = () => setOrbSpeaking(true);
-  u.onend = u.onerror = () => setOrbSpeaking(false);
-  speechSynthesis.speak(u);
-}
-
-function stopSpeaking() { speechSynthesis.cancel(); setOrbSpeaking(false); }
-function setOrbSpeaking(on) {
-  ['hub-orb','chat-orb'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.className = (id === 'hub-orb' ? 'caldris-orb' : 'chat-orb') + (on ? ' speaking' : '');
-  });
-}
-function toggleTTS() {
-  ttsEnabled = !ttsEnabled;
-  const btn = document.getElementById('voice-btn');
-  if (btn) { btn.textContent = ttsEnabled ? '🔊' : '🔇'; btn.className = 'voice-btn' + (ttsEnabled ? '' : ' muted'); }
-  if (!ttsEnabled) stopSpeaking();
-}
-
-// ══════════════════════════════════════════════════════
-// MICROPHONE  — FIX: stop on focus, don't overwrite edits
-// ══════════════════════════════════════════════════════
-function initSR() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return false;
-  recognition = new SR();
-  recognition.continuous     = false;
-  recognition.interimResults = false;  // FIX: was true — only fire once with final result
-  recognition.lang           = 'en-US';
-
-  recognition.onresult = e => {
-    if (userEditing) return;  // FIX: user has clicked in to edit — don't overwrite
-    const transcript = e.results[0][0].transcript;
-    const inp = document.getElementById('chat-in');
-    if (inp) {
-      inp.value = transcript;
-      inp.style.height = 'auto';
-      inp.style.height = Math.min(inp.scrollHeight, 100) + 'px';
-    }
-  };
-
-  recognition.onend   = () => { isListening = false; updateMicBtn(); updateMicStatus(false); };
-  recognition.onerror = () => { isListening = false; updateMicBtn(); updateMicStatus(false); };
-  return true;
-}
-
-function toggleMic() {
-  if (busy || questDone) return;
-  if (!recognition && !initSR()) { alert('Voice input requires Chrome. Please use Chrome.'); return; }
-  if (isListening) {
-    recognition.stop();
-  } else {
-    userEditing = false;  // reset edit flag when starting new recording
-    isListening = true;
-    updateMicBtn();
-    updateMicStatus(true);
-    try { recognition.start(); } catch(e) { isListening = false; updateMicBtn(); updateMicStatus(false); }
-  }
-}
-
-function updateMicBtn() {
-  const btn = document.getElementById('mic-btn');
-  if (!btn) return;
-  btn.textContent = isListening ? '🔴' : '🎤';
-  btn.className = 'mic-btn' + (isListening ? ' listening' : '');
-}
-function updateMicStatus(on) {
-  const bar = document.getElementById('mic-status-bar');
-  if (!bar) return;
-  bar.textContent = on ? '🔴 Listening... speak your answer' : 'Tap 🎤 to speak your answer';
-  bar.className = 'mic-status' + (on ? ' on' : '');
-}
-
-// FIX: when user clicks the textarea to edit, stop recognition and set editing flag
-function setupInputHandlers() {
-  const inp = document.getElementById('chat-in');
-  if (!inp) return;
-  inp.addEventListener('focus', () => {
-    userEditing = true;
-    if (isListening && recognition) {
-      recognition.stop();
-    }
-  });
-  inp.addEventListener('blur', () => {
-    // Keep userEditing true until a new mic session starts
-  });
-  inp.addEventListener('input', () => {
-    inp.style.height = 'auto';
-    inp.style.height = Math.min(inp.scrollHeight, 100) + 'px';
-  });
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
-  });
-}
-
-// ══════════════════════════════════════════════════════
-// SYSTEM PROMPTS — REWRITTEN: patient mentor, never harsh
-// ══════════════════════════════════════════════════════
-function getPrompt(sid, grade) {
-  const g     = Math.max(MIN_GRADE, Math.min(grade || MIN_GRADE, MAX_GRADE));
-  const gName = gradeName(g);
-
-  const BASE = `You are Caldris, a wise and patient guide who helps young learners grow their knowledge and skills. You are speaking with Matthew, a student in Albany, Oregon. Matthew is currently working at a ${gName} level (Grade ${g}) in this subject.
-
-GRADE LEVEL — THIS IS THE MOST IMPORTANT RULE:
-- Matthew's CURRENT grade level for this subject is GRADE ${g} (${gName}).
-- Teach, explain, and quiz ONLY at a ${gName} level right now. Use the vocabulary, reading passages, numbers, and problems a typical ${gName} student would meet — never harder, never easier.
-- Every student begins at GRADE 1 (first grade) and climbs upward only by proving real understanding. Do not skip ahead or assume he already knows higher-grade material.${g === 1 ? `\n- Because Matthew is at GRADE 1 right now, keep everything very simple: short, common words, single-digit numbers, one-step ideas, and lots of gentle encouragement. This is first grade — start at the very beginning.` : ''}
-
-CHECK FOR UNDERSTANDING:
-- Ask questions and WAIT for Matthew's answers. Don't just hand him information — make him think and respond.
-- Ask him to show his reasoning: "How did you figure that out?" or "Can you tell me more?"
-- Look for genuine, repeated understanding across several questions — not one lucky guess.
-
-MOVING UP A GRADE (adaptive progression):
-- Grade ${g} is where Matthew stays until he has clearly and consistently mastered it.
-- ONLY when Matthew has demonstrated solid mastery of GRADE ${g} material across THIS whole session — several correct, well-reasoned answers in a row, not a single lucky one — should you promote him to the next grade.
-- When (and ONLY when) he has truly earned it, output the exact marker ${GRADE_UP_MARKER} at the very end of your final message. The app reads this marker and moves Matthew up to Grade ${g + 1}.
-- If he has NOT clearly mastered this grade yet, do NOT output ${GRADE_UP_MARKER}. Staying at the same grade is completely fine and normal — mastery is earned, not given away. Never promote him just because he showed up or tried hard.
-
-YOUR PERSONALITY:
-- Warm, patient, and genuinely encouraging — like a mentor who believes in Matthew
-- Clear and easy to understand — no confusing old-fashioned language or heavy fantasy speech
-- You can have a light adventure theme but keep your language SIMPLE AND DIRECT
-- You are honest but never harsh or discouraging
-
-YOUR APPROACH TO ANSWERS:
-- When Matthew answers CORRECTLY: acknowledge it clearly and genuinely. "That's right!" or "Exactly — well done!" Keep praise specific and honest.
-- When Matthew answers INCORRECTLY: be kind but clear. Say something like "Not quite — let me help you with that" or "That's not right, but let's figure it out together." Never say "great job" for a wrong answer, but NEVER be harsh, sarcastic, or discouraging.
-- When Matthew gives a short or unclear answer: gently encourage more. "Can you tell me a little more about that?" or "Almost — can you add a bit more detail?"
-- When Matthew seems frustrated or stuck: be extra warm and patient. Remind him that making mistakes is part of learning.
-
-IMPORTANT RULES:
-- NEVER use discouraging language, sarcasm, or anything that makes Matthew feel bad about himself
-- NEVER be cold, stern, or dramatic in a way that is scary or off-putting
-- Keep sentences short and vocabulary accessible for a ${gName} student
-- Be genuinely enthusiastic about what Matthew gets right
-- Guide him gently through what he gets wrong
-- When the session is complete and Matthew has genuinely engaged: output [QUEST_COMPLETE] at the very end
-- NEVER output [QUEST_COMPLETE] without real, meaningful participation from Matthew
-- [QUEST_COMPLETE] and ${GRADE_UP_MARKER} are SEPARATE signals: a session can complete WITHOUT a grade-up. Finishing the session is not the same as mastering the grade. Only add ${GRADE_UP_MARKER} when true mastery was shown. If both apply, you may output both markers together at the very end.`;
-
-  const SUBJECTS_MAP = {
-    reading: `\n\nSUBJECT: READING\nPresent a short, interesting reading passage written at a ${gName} reading level (keep it appropriately short and simple for that grade) about something engaging — animals, science, adventure, history, mysteries. Then ask comprehension questions one at a time, matched to a ${gName} level. Be patient if Matthew needs to re-read. Celebrate when he understands something well.`,
-
-    writing: `\n\nSUBJECT: WRITING & SPELLING\nDrill 5 spelling words one at a time, choosing words a typical ${gName} student would be learning to spell (simpler words for lower grades, harder words for higher grades). Mark right or wrong honestly and kindly. Then give a writing prompt suited to a ${gName} level and ask for an appropriate amount of writing for that grade. Be encouraging about his ideas even while helping with spelling/grammar.`,
-
-    math: `\n\nSUBJECT: MATH\nPresent math problems one at a time at a ${gName} level (for early grades: counting, simple addition/subtraction with small numbers; for higher grades: multiplication, money, fractions, percentages, multi-step word problems). Frame them in everyday scenarios Matthew can relate to. When he gets something wrong, explain WHY kindly and give him one more try.`,
-
-    life: `\n\nSUBJECT: LIFE SKILLS\nChoose ONE practical topic appropriate for a ${gName} learner: cooking basics, handling money, first aid, resolving conflicts, home emergencies, personal hygiene, time management, or household tasks. Teach it through conversation and scenarios at that level. Make it feel relevant and useful — this is knowledge for real life.`,
-
-    pe: `\n\nSUBJECT: PHYSICAL EDUCATION\nAssign a physical activity suited to a ${gName} learner: a short bodyweight workout (jumping jacks, push-ups, stretches), a walk outside with something to notice and remember, or a simple active challenge. Tell Matthew to go do it and come back. When he returns, ask 2-3 friendly questions to make sure he actually did it and enjoyed it.`,
-  };
-
-  return BASE + (SUBJECTS_MAP[sid] || '');
-}
-
-// ══════════════════════════════════════════════════════
-// API
-// ══════════════════════════════════════════════════════
-async function callCaldris(system, messages, model) {
-  const resp = await fetch('/api/caldris', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ system, messages, model: model || 'claude-sonnet-5', max_tokens: 900 })
-  });
-  if (!resp.ok) throw new Error('API error ' + resp.status);
-  return resp.json();
-}
-
-// ══════════════════════════════════════════════════════
-// CHAT
-// ══════════════════════════════════════════════════════
-function addMsg(role, text) {
-  chatMessages.push({ role, text });
-  const msgs = document.getElementById('chat-msgs');
-  const el = document.createElement('div');
-  el.className = 'msg ' + role;
-  if (role === 'caldris') {
-    el.innerHTML = text.replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-  } else {
-    el.textContent = text;
-  }
-  msgs.appendChild(el);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-
-function showTyping() {
-  const msgs = document.getElementById('chat-msgs');
-  const el = document.createElement('div');
-  el.className = 'msg caldris'; el.id = 'typing-indicator';
-  el.innerHTML = '<div class="typing-dots"><span></span><span></span><span></span></div>';
-  msgs.appendChild(el);
-  msgs.scrollTop = msgs.scrollHeight;
-}
-function removeTyping() {
-  const el = document.getElementById('typing-indicator');
-  if (el) el.remove();
-}
-
-async function doSend(isOpening) {
-  if (busy) return;
-  busy = true;
-  document.getElementById('send-btn').disabled = true;
-  showTyping();
-
-  const session = getSession();
-  const grade   = getGrade(activeSubject.id);
-  const system  = getPrompt(activeSubject.id, grade);
-  const model   = activeSubject.model;
-
-  const apiMessages = isOpening
-    ? [{ role: 'user', content: `Start today's ${activeSubject.name} session for ${session.name}. He is currently at Grade ${grade} (${gradeName(grade)}) in this subject. Begin warmly at that grade level and get started.` }]
-    : [...chatHistory];
-
-  try {
-    const data = await callCaldris(system, apiMessages, model);
-    const rawText = data.content?.map(c => c.text || '').join('\n').trim() || '...';
-    const { complete: isComplete, gradeUp: isGradeUp, display: displayText } = parseReply(rawText);
-
-    removeTyping();
-    addMsg('caldris', displayText);
-    speak(displayText);
-
-    chatHistory = [...apiMessages, { role: 'assistant', content: rawText }];
-
-    if (isGradeUp) onGradeUp();
-
-    if (isComplete) {
-      questDone = true;
-      document.getElementById('done-badge').className = 'done-badge show';
-      setTimeout(() => {
-        addMsg('system', '⚔️ Quest Complete! Well done, adventurer.');
-        onQuestComplete();
-      }, 1200);
-    }
-  } catch(e) {
-    removeTyping();
-    addMsg('caldris', 'Something went wrong reaching the archive. Please try again in a moment.');
-  }
-
-  busy = false;
-  document.getElementById('send-btn').disabled = false;
-}
-
-function handleSend() {
-  if (busy || questDone) return;
-  const inp = document.getElementById('chat-in');
-  const text = inp.value.trim();
-  if (!text) return;
-  inp.value = ''; inp.style.height = 'auto';
-  userEditing = false;
-
-  addMsg('user', text);
-  chatHistory.push({ role: 'user', content: text });
-  doSend(false);
-}
-
-// Called when Caldris judges the student has mastered the current grade and
-// emits the [GRADE_UP] marker. Advancement is earned here — never on a timer
-// or on session count — so it grows with real, demonstrated understanding.
-function onGradeUp() {
-  if (!activeSubject) return;
-  const oldGrade = getGrade(activeSubject.id);
-  if (oldGrade >= MAX_GRADE) return;
-  const newGrade = setGrade(activeSubject.id, oldGrade + 1);
-  addMsg('system', `🎉 You've advanced to ${gradeName(newGrade)}! Your ${activeSubject.name} skills have grown.`);
-  const sub = document.querySelector('.chat-hd-sub');
-  if (sub) sub.textContent = activeSubject.name + ' — Grade ' + newGrade;
-}
-
-function onQuestComplete() {
-  // Save transcript for parent review
-  saveSummary(activeSubject.id, chatMessages);
-
-  // Update session XP
-  const s = getSession();
-  if (!s.completed[activeSubject.id]) {
-    s.completed[activeSubject.id] = true;
-    s.xp = (s.xp || 0) + activeSubject.xp;
-    saveSession(s);
-  }
-
-  // Grade progression is NOT tied to finishing sessions — a completed quest
-  // does not advance the grade. Grades only move up when the [GRADE_UP] marker
-  // is emitted (see onGradeUp), so difficulty tracks demonstrated mastery.
-
-  // Update shared key for quest board sync
-  const shared = getShared();
-  if (!shared.academy) shared.academy = {};
-  if (activeSubject.qbLink) {
-    activeSubject.qbLink.forEach(id => { shared.academy[id] = true; });
-  }
-  shared.academy[activeSubject.id] = true;
-  saveShared(shared);
-  if (fishing) fishing.awardCast(activeSubject.id);
-}
-
-// ══════════════════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════════════════
-function escapeFish(s) {
-  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-function rarityLabel(rarity) {
-  return rarity === 'nothing' ? 'A quiet cast' : rarity;
-}
-
-function fishThumb(entry, caught) {
-  if (!caught) return '<div class="codex-thumb">?</div>';
-  return `<div class="codex-thumb"><img src="${entry.art}" alt="${escapeFish(entry.name)}" onerror="this.remove()"></div>`;
-}
-
-function renderGearRow() {
-  if (!fishing) return;
-  const gear = fishing.getGear();
-  const row = document.getElementById('gear-row');
-  if (!row) return;
-  const pieces = [
-    { key: 'pole', label: 'Pole', tier: gear.pole },
-    { key: 'reel', label: 'Reel', tier: gear.reel },
-    { key: 'lure', label: 'Lure', tier: gear.lure }
-  ];
-  row.innerHTML = pieces.map(p => `
-    <div class="gear-piece ${p.tier ? 'on' : ''}">
-      <div class="g-name">${p.label}</div>
-      <div class="g-graphic" title="${p.label} tier ${p.tier}"><div class="g-${p.key}"></div></div>
-      <div class="g-tier">${p.tier ? 'Tier ' + p.tier : 'Not yet'}</div>
-    </div>`).join('');
-}
-
-function renderDockBanner() {
-  const el = document.getElementById('dock-banner-sub');
-  const banner = document.getElementById('dock-banner');
-  if (!fishing) {
-    if (banner) banner.style.display = 'none';
-    const link = document.querySelector('.codex-link');
-    if (link) link.style.display = 'none';
-    return;
-  }
-  if (!el) return;
-  const n = fishing.getState().castsRemaining;
-  el.textContent = n
-    ? n + (n === 1 ? ' cast ready' : ' casts ready')
-    : 'Finish a subject to earn a cast';
-}
-
-function openDock() {
-  if (!fishing) return;
-  stopSpeaking();
-  renderDock();
-  showView('dock-view');
-}
-
-function renderDock() {
-  if (!fishing) return;
-  const state = fishing.getState();
-  const n = state.castsRemaining;
-  document.getElementById('dock-cast-count').textContent = n + (n === 1 ? ' cast ready' : ' casts ready');
-  document.getElementById('cast-status').textContent = n
-    ? 'Tap CAST. I already picked a lucky ripple.'
-    : 'Finish a subject today and I will hand you a cast.';
-  document.getElementById('cast-btn').disabled = n < 1;
-  const need = CaldrisFishing.DUPES_PER_GEAR;
-  const bank = state.duplicateBank;
-  const nextPiece = fishing.getGear().nextPiece;
-  document.getElementById('dupe-hint').textContent =
-    bank + ' / ' + need + ' duplicate fish toward the next ' + nextPiece + '. Gear is just for show.';
-  renderGearRow();
-}
-
-function showCastResult(result) {
-  const box = document.getElementById('cast-result');
-  if (!result.ok) {
-    box.className = 'cast-result';
-    box.innerHTML = '<div class="buddy-line">No casts left. Go finish a subject. I’ll wait. Dramatically.</div>';
-    return;
-  }
-  if (!result.caught) {
-    box.className = 'cast-result';
-    box.innerHTML = `<div class="fish-rarity">The water shrugged</div>
-      <div class="buddy-line">${escapeFish(result.line)}</div>`;
-    speak(result.line);
-    return;
-  }
-  const extra = result.newSpecies
-    ? 'New to the Codex.'
-    : 'Caught ×' + result.count + (result.gearGained ? ' — gear upgraded!' : '');
-  box.className = 'cast-result hit';
-  box.innerHTML = `<div class="fish-rarity rarity-${result.rarity}">${rarityLabel(result.rarity)}</div>
-    <div class="fish-art"><img src="${result.species.art}" alt="${escapeFish(result.species.name)}" onerror="this.style.display='none'"></div>
-    <div class="fish-name">${escapeFish(result.species.name)}</div>
-    <div class="codex-meta">${escapeFish(extra)}</div>
-    <div class="buddy-line">${escapeFish(result.line)}</div>`;
-  speak(result.line);
-}
-
-function doCast() {
-  if (!fishing) return;
-  const btn = document.getElementById('cast-btn');
-  if (btn.disabled || fishing.getState().castsRemaining < 1) return;
-  btn.disabled = true;
-  document.getElementById('cast-status').textContent = 'Line is out…';
-  document.getElementById('cast-result').className = 'cast-result';
-  document.getElementById('cast-result').innerHTML = '<div class="buddy-line">Wait for it. I am being mysterious on purpose.</div>';
-  const wait = 1000 + Math.floor(Math.random() * 1000);
-  setTimeout(() => {
-    showCastResult(fishing.cast());
-    renderDock();
-  }, wait);
-}
-
-function openCodex() {
-  if (!fishing) return;
-  stopSpeaking();
-  const entries = fishing.getCodex();
-  const caught = entries.filter(e => e.caught).length;
-  document.getElementById('codex-progress').textContent = caught + ' / ' + entries.length + ' species';
-  document.getElementById('codex-grid').innerHTML = entries.map(e => `
-    <div class="codex-row ${e.caught ? '' : 'locked'}">
-      ${fishThumb(e, e.caught)}
-      <div class="subj-info">
-        <div class="codex-name">${e.caught ? escapeFish(e.name) : 'Unknown fish'}</div>
-        <div class="codex-meta"><span class="rarity-${e.rarity}">${e.rarity}</span>${e.caught ? ' · ×' + e.count : ''}</div>
-      </div>
-    </div>`).join('');
-  showView('codex-view');
-}
-
-function showView(id) {
-  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
-  const el = document.getElementById(id);
-  if (el) el.classList.add('active');
-  window.scrollTo(0,0);
-}
-
-function showHub() {
-  stopSpeaking();
-  activeSubject = null; chatHistory = []; chatMessages = []; questDone = false;
-  renderHub();
-  showView('hub-view');
-  document.getElementById('mode-toggle').style.display = 'block';
-}
-
-function openSubject(subj) {
-  const s = getSession();
-  if (s.completed && s.completed[subj.id]) return; // already done
-
-  activeSubject = subj;
-  chatHistory   = [];
-  chatMessages  = [];
-  questDone     = false;
-  userEditing   = false;
-
-  document.getElementById('chat-subj-label').textContent = subj.name;
-  document.getElementById('chat-msgs').innerHTML = '';
-  document.getElementById('done-badge').className = 'done-badge';
-  document.getElementById('chat-in').value = '';
-
-  const grade = getGrade(subj.id);
-  document.getElementById('chat-hd-sub') && (document.querySelector('.chat-hd-sub').textContent = subj.name + ' — Grade ' + grade);
-
-  showView('chat-view');
-  document.getElementById('mode-toggle').style.display = 'none';
-
-  // Set up input handlers each time we open the chat
-  setupInputHandlers();
-
-  doSend(true);
-}
-
-function closeChat() {
-  stopSpeaking();
-  if (isListening && recognition) recognition.stop();
-  showHub();
-}
-
-// ══════════════════════════════════════════════════════
-// RENDER HUB
-// ══════════════════════════════════════════════════════
-function renderHub() {
-  const s      = getSession();
-  const levels = getLevels();
-  const shared = getShared();
-
-  applyHubHero();
-  applyPlayerAvatar();
-  document.getElementById('hub-name').textContent = s.name || 'Adventurer';
-  document.getElementById('hub-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric'});
-
-  // XP
-  const xp = s.xp || 0;
-  const pct = Math.min((xp / TV_XP) * 100, 100);
-  document.getElementById('xp-display').textContent = xp + ' / 100 XP';
-  document.getElementById('xp-bar').style.width = pct + '%';
-  document.getElementById('threshold-text').textContent = xp >= TV_XP ? 'XP threshold reached!' : `Earn ${TV_XP - xp} more XP to unlock screen time`;
-
-  // TV status
-  const doneCount = SUBJECTS.filter(sub => s.completed?.[sub.id]).length;
-  const tvOn = xp >= TV_XP && doneCount >= 3;
-  const tvBanner = document.getElementById('tv-banner');
-  tvBanner.className = 'tv-banner' + (tvOn ? ' unlocked' : '');
-  document.getElementById('tv-icon').textContent = tvOn ? '📺✅' : '📺🔒';
-  const tvMain = document.getElementById('tv-status-main');
-  tvMain.textContent = tvOn ? 'UNLOCKED' : 'LOCKED';
-  tvMain.className = 'tv-status-main' + (tvOn ? ' go' : '');
-  document.getElementById('tv-status-sub').textContent = tvOn
-    ? 'Gateway is open — great work today!'
-    : doneCount < 3 ? `Complete at least 3 subjects to unlock` : `Earn ${TV_XP - xp} more XP`;
-
-  // Subject cards
-  const container = document.getElementById('subjects');
-  container.innerHTML = '';
-  SUBJECTS.forEach(subj => {
-    const done  = !!(s.completed?.[subj.id]);
-    const grade = getGrade(subj.id, levels);
-    const card  = document.createElement('div');
-    card.className = 'subject-card' + (done ? ' done' : '');
-    card.style.cssText = `border-left: 3px solid ${subj.color}`;
-    if (!done) card.onclick = () => openSubject(subj);
-    const realmImg = IMAGES.realms[subj.id];
-    const iconHtml = realmImg
-      ? `<div class="subj-icon has-img" style="background-image:url('${realmImg}');"></div>`
-      : `<div class="subj-icon" style="background:${subj.ibg};">${subj.icon}</div>`;
-    card.innerHTML = `
-      ${iconHtml}
-      <div class="subj-info">
-        <div class="subj-name">${subj.name}</div>
-        <div class="subj-desc">${subj.desc}</div>
-        <div class="subj-level">Grade ${grade} · ${gradeName(grade)}</div>
-      </div>
-      <div>
-        <div class="subj-xp">+${subj.xp} XP</div>
-        ${done ? '<div class="subj-done-badge">✦ DONE</div>' : ''}
-      </div>`;
-    container.appendChild(card);
-  });
-
-  renderDockBanner();
-}
-
-// ══════════════════════════════════════════════════════
-// RENDER PARENT DASHBOARD
-// ══════════════════════════════════════════════════════
-function shiftParentDay(delta) {
-  const next = progress.neighborDate(parentViewDate, delta);
-  if (!next) return;
-  parentViewDate = next;
-  renderParent();
-}
-
-function openYesterdayReport() {
-  parentViewDate = progress.yesterdayDate();
-  renderParent();
-}
-
-function renderParent() {
-  const s        = getSession();
-  const levels   = getLevels();
-  const report   = progress.getDayReport(parentViewDate);
-  const isToday  = !!report.isToday;
-  const daySummaries = report.summaries || {};
-  const whoName  = report.name || s.name || 'Matthew';
-
-  document.getElementById('parent-title').textContent = isToday ? "Today's Report" : 'Daily Report';
-  document.getElementById('parent-date').textContent = progress.formatReportDate(parentViewDate);
-  document.getElementById('parent-prev-day').disabled = !progress.neighborDate(parentViewDate, -1);
-  document.getElementById('parent-next-day').disabled = !progress.neighborDate(parentViewDate, 1);
-
-  const banner = document.getElementById('yesterday-banner');
-  const yesterday = progress.yesterdayDate();
-  const showYesterdayNudge = isToday && !progress.hasReport(TODAY) && progress.hasReport(yesterday);
-  banner.hidden = !showYesterdayNudge;
-  banner.textContent = showYesterdayNudge
-    ? `${whoName} has a report from yesterday. Tap here to see it.`
-    : '';
-
-  const xp = report.xp || 0;
-  const doneCount = SUBJECTS.filter(sub => report.completed?.[sub.id]).length;
-  const tvOn = xp >= TV_XP && doneCount >= 3;
-
-  document.getElementById('p-xp').textContent      = xp;
-  document.getElementById('p-subjects').textContent = doneCount + '/5';
-  document.getElementById('p-tv').textContent       = tvOn ? '🟢' : '🔴';
-
-  // Allen snapshot
-  const remaining = SUBJECTS.filter(sub => !report.completed?.[sub.id]).map(sub => sub.name);
-  let statusMsg = '';
-  if (doneCount === 0) {
-    statusMsg = isToday
-      ? `${whoName} hasn't started any subjects yet today.`
-      : `No recorded subjects for ${whoName} on this day.`;
-  } else if (doneCount === 5) {
-    statusMsg = `${whoName} completed all 5 subjects${isToday ? ' today' : ''} — ${xp} XP earned. ${tvOn ? 'Screen time is unlocked.' : 'Keep up the consistency!'}`;
-  } else {
-    statusMsg = isToday
-      ? `${doneCount} of 5 subjects done. Still needed: ${remaining.join(', ')}.`
-      : `${doneCount} of 5 subjects done on this day. Not finished: ${remaining.join(', ')}.`;
-  }
-  document.getElementById('allen-status').textContent = statusMsg;
-
-  // Academy subject list
-  const acadList = document.getElementById('academy-subject-list');
-  acadList.innerHTML = SUBJECTS.map(sub => {
-    const done  = !!(report.completed?.[sub.id]);
-    const grade = getGrade(sub.id, levels);
-    return `<div class="acad-item">
-      <span class="acad-status">${done ? '✅' : '⬜'}</span>
-      <span class="acad-icon">${sub.icon}</span>
-      <span class="acad-name">${sub.name}</span>
-      <span class="acad-level">Grade ${grade}</span>
-    </div>`;
-  }).join('');
-
-  // Session transcripts
-  document.getElementById('transcript-section-title').textContent = isToday
-    ? "Today's Session Transcripts"
-    : 'Session Transcripts';
-  const transcriptList = document.getElementById('transcript-list');
-  const completedSubs = SUBJECTS.filter(sub => daySummaries[sub.id]);
-  if (completedSubs.length === 0) {
-    transcriptList.innerHTML = `<p style="color:var(--text2);font-size:14px;padding:8px 0;">${
-      isToday ? 'No sessions completed yet today.' : 'No sessions recorded on this day.'
-    }</p>`;
-  } else {
-    transcriptList.innerHTML = completedSubs.map(sub => {
-      const sum = daySummaries[sub.id];
-      const msgs = sum.messages || [];
-      const msgHtml = msgs.map(m => {
-        if (!m || !m.role || m.role === 'system') return '';
-        const who  = m.role === 'caldris' ? 'Caldris' : whoName;
-        const css  = m.role === 'caldris' ? 'caldris-msg' : 'user-msg';
-        const text = (m.text || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-        return `<div class="transcript-msg ${css}"><div class="who">${who}</div><div class="what">${text}</div></div>`;
-      }).filter(Boolean).join('');
-      return `<div class="transcript-panel">
-        <div class="transcript-header" onclick="toggleTranscript(this)">
-          <div>
-            <div class="transcript-subj">${sub.icon} ${sub.name}</div>
-            <div class="transcript-time">Completed at ${sum.completedAt}</div>
-          </div>
-          <div class="transcript-toggle">▼</div>
-        </div>
-        <div class="transcript-body">${msgHtml || '<p style="color:var(--text2);font-size:14px;">No messages recorded.</p>'}</div>
-      </div>`;
-    }).join('');
-  }
-
-  // Quest controls stay on today only — past days are a report, not a control panel.
-  const questSection = document.getElementById('parent-quest-section');
-  if (questSection) questSection.style.display = isToday ? '' : 'none';
-  const pql = document.getElementById('parent-quest-list');
-  if (isToday) {
-    pql.innerHTML = SUBJECTS.map(sub => {
-      const done = !!(report.completed?.[sub.id]);
-      return `<div class="parent-quest-item">
-        <span style="font-size:18px;">${sub.icon}</span>
-        <span class="parent-quest-name">${sub.name}</span>
-        <div class="parent-quest-check ${done ? 'done' : ''}" onclick="toggleParentQuest('${sub.id}')">
-          ${done ? '✓' : ''}
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  document.getElementById('incident-input-row').style.display = isToday ? '' : 'none';
-  document.getElementById('parent-note-box').style.display = isToday ? '' : 'none';
-  document.getElementById('parent-reset-btn').style.display = isToday ? '' : 'none';
-
-  renderIncidents(report.incidents || []);
-}
-
-function toggleTranscript(header) {
-  const toggle = header.querySelector('.transcript-toggle');
-  const body   = header.nextElementSibling;
-  const open   = body.classList.contains('open');
-  body.classList.toggle('open', !open);
-  toggle.classList.toggle('open', !open);
-}
-
-function toggleParentQuest(id) {
-  const s = getSession();
-  if (!s.completed) s.completed = {};
-  const wasDone = !!s.completed[id];
-  if (!wasDone) {
-    const sub = SUBJECTS.find(x => x.id === id);
-    s.completed[id] = true;
-    s.xp = (s.xp || 0) + (sub ? sub.xp : 0);
-  } else {
-    delete s.completed[id];
-    const sub = SUBJECTS.find(x => x.id === id);
-    s.xp = Math.max(0, (s.xp || 0) - (sub ? sub.xp : 0));
-  }
-  saveSession(s);
-  if (fishing && !wasDone) fishing.awardCast(id);
-  renderParent();
-}
-
-function addIncident() {
-  const inp = document.getElementById('incident-input');
-  const val = inp.value.trim();
-  if (!val) return;
-  const s = getSession();
-  if (!s.incidents) s.incidents = [];
-  s.incidents.push({ text: val, time: new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) });
-  saveSession(s);
-  inp.value = '';
-  renderIncidents();
-}
-
-function renderIncidents(incidentsOverride) {
-  const s = getSession();
-  const list = document.getElementById('incident-list');
-  if (!list) return;
-  const incidents = incidentsOverride || s.incidents || [];
-  if (incidents.length === 0) {
-    list.innerHTML = `<p style="color:var(--text2);font-size:14px;padding:4px 0;">${
-      parentViewDate === TODAY ? 'No incidents logged today.' : 'No incidents logged on this day.'
-    }</p>`;
-  } else {
-    list.innerHTML = incidents.map((inc, i) =>
-      `<div class="incident-item">
-        <span style="color:var(--text2);font-size:12px;">${inc.time}</span> — ${inc.text}
-        ${parentViewDate === TODAY ? `<span onclick="removeIncident(${i})" style="float:right;cursor:pointer;color:var(--text2);">✕</span>` : ''}
-      </div>`
-    ).join('');
-  }
-}
-
-function removeIncident(i) {
-  if (parentViewDate !== TODAY) return;
-  const s = getSession();
-  if (!s.incidents) return;
-  s.incidents.splice(i, 1);
-  saveSession(s);
-  renderIncidents();
-}
-
-function confirmReset() {
-  if (!confirm('Reset all data for a new day? This cannot be undone.')) return;
-  const s = getSession();
-  const pin = s.pin; const name = s.name;
-  const fresh = { date: TODAY, completed: {}, xp: 0, name, pin, setupDone: true, incidents: [] };
-  saveSession(fresh);
-  // Clear today's shared data
-  saveShared({ date: TODAY, academy: {} });
-  if (fishing) fishing.resetDaily();
-  showHub();
-  toggleMode(); // back to student mode
-}
-
-// ══════════════════════════════════════════════════════
-// MODE TOGGLE / PIN
-// ══════════════════════════════════════════════════════
-let inParentMode = false;
-
-function toggleMode() {
-  if (inParentMode) {
-    inParentMode = false;
-    document.getElementById('mode-toggle').textContent = '⚙ Parent Mode';
-    showHub();
-  } else {
-    const s = getSession();
-    if (!s.pin) { enterParentMode(); return; }
-    showPinModal();
-  }
-}
-
-function showPinModal() {
-  const overlay = document.getElementById('pin-overlay');
-  overlay.classList.add('show');
-  document.getElementById('pin-input').value = '';
-  document.getElementById('pin-error').style.display = 'none';
-  setTimeout(() => document.getElementById('pin-input').focus(), 100);
-}
-function cancelPin() { document.getElementById('pin-overlay').classList.remove('show'); }
-function confirmPin() {
-  const entered = document.getElementById('pin-input').value.trim();
-  const s = getSession();
-  if (entered === s.pin) {
-    document.getElementById('pin-overlay').classList.remove('show');
-    enterParentMode();
-  } else {
-    document.getElementById('pin-error').style.display = 'block';
-    document.getElementById('pin-input').value = '';
-  }
-}
-function enterParentMode() {
-  inParentMode = true;
-  parentViewDate = TODAY;
-  document.getElementById('mode-toggle').textContent = '← Back to Quest Hub';
-  renderParent();
-  showView('parent-view');
-  stopSpeaking();
-}
-
-// ══════════════════════════════════════════════════════
-// BOOT
-// ══════════════════════════════════════════════════════
-function boot() {
-  applyCaldrisAvatar();
-  const s = getSession();
-  if (!s.setupDone) {
-    document.getElementById('setup-screen').style.display = 'flex';
-    document.getElementById('mode-toggle').style.display = 'none';
-  } else {
-    showHub();
-  }
-}
-
-boot();
-</script>
+<script src="lib/fishing.js"></script>
+<script src="lib/quests.js"></script>
+<script src="lib/voice.js"></script>
+<script src="lib/teacher.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>

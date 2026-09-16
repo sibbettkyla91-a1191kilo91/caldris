@@ -1,0 +1,16 @@
+{
+  "name": "The Realm of Caldris",
+  "short_name": "Caldris",
+  "description": "Matthew's homeschool adventure — daily quests, then earned screen time.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b0b12",
+  "theme_color": "#0b0b12",
+  "icons": [
+    {
+      "src": "assets/images/caldris.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    }
+  ]
+}
