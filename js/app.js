@@ -7,6 +7,7 @@
   var fishing = window.CaldrisFishing && CaldrisFishing.create({ today: TODAY });
   var Teacher = window.CaldrisTeacher || {};
   var VoiceLib = window.CaldrisVoice || {};
+  var Ownership = window.CaldrisLessonOwnership || {};
   var IMAGES = {
     mainRealm: 'assets/images/realm-main.jpg',
     campsite: 'assets/images/realm-campsite.jpg',
@@ -136,12 +137,13 @@
     voice.refreshVoice();
   }
 
+  function cleanTeacherText(text) {
+    return VoiceLib.cleanSpeechText ? VoiceLib.cleanSpeechText(text) : String(text || '').trim();
+  }
+
   function speakTeacher(text, reason) {
-    var clean = VoiceLib.cleanSpeechText ? VoiceLib.cleanSpeechText(text) : String(text || '').trim();
+    var clean = cleanTeacherText(text);
     if (!clean) return;
-    teacherLine = clean;
-    var bubble = $('quest-prompt');
-    if (bubble) bubble.textContent = clean;
     if (voice && settings.ttsEnabled) {
       var debug = voice.speak(clean, reason || 'queue');
       if (debug && typeof console !== 'undefined' && console.info) {
@@ -150,11 +152,46 @@
     }
   }
 
-  function setTeacherLine(text, reason, logIt) {
-    var clean = VoiceLib.cleanSpeechText ? VoiceLib.cleanSpeechText(text) : String(text || '').trim();
+  function invalidateClaude() {
+    claudeSeq = Ownership.nextSeq ? Ownership.nextSeq(claudeSeq) : claudeSeq + 1;
+  }
+
+  // #quest-prompt belongs only to the deterministic curriculum beat.
+  function setCurriculumPrompt(text, reason) {
+    var clean = cleanTeacherText(text);
+    if (!clean) return;
+    teacherLine = clean;
+    var bubble = $('quest-prompt');
+    if (bubble) bubble.textContent = clean;
+    speakTeacher(clean, reason || 'queue');
+  }
+
+  function restoreCurriculumPrompt() {
+    var beat = currentBeat();
+    if (!beat) return;
+    var text = (Ownership.promptFromBeat && Ownership.promptFromBeat(beat)) || beat.prompt;
+    if (!text) return;
+    teacherLine = cleanTeacherText(text);
+    var bubble = $('quest-prompt');
+    if (bubble) bubble.textContent = teacherLine;
+  }
+
+  function restateCurriculumPrompt(reason) {
+    var beat = currentBeat();
+    var text = (Ownership.promptFromBeat && Ownership.promptFromBeat(beat)) || (beat && beat.prompt);
+    if (text) setCurriculumPrompt(text, reason || 'queue');
+  }
+
+  function setTeacherFeedback(text, reason, logIt) {
+    var clean = cleanTeacherText(text);
     if (!clean) return;
     if (logIt !== false) questLog.push({ role: 'caldris', text: clean });
-    speakTeacher(clean, reason);
+    var hint = $('quest-hint');
+    var side = $('sidekick-line');
+    if (hint) hint.textContent = clean;
+    if (side) side.textContent = clean;
+    speakTeacher(clean, reason || 'queue');
+    restoreCurriculumPrompt();
   }
 
   function setGuideMood(mood) {
@@ -199,6 +236,7 @@
   }
 
   function replayTeacher() {
+    restoreCurriculumPrompt();
     if (!teacherLine) return;
     if (!settings.ttsEnabled) enableSound();
     if (voice) {
@@ -208,8 +246,6 @@
         console.info('[caldris-voice-replay]', { full: debug.full, spoken: debug.spoken, same: debug.text === teacherLine });
       }
     }
-    var bubble = $('quest-prompt');
-    if (bubble) bubble.textContent = teacherLine;
   }
 
   function skipTalking() {
@@ -540,7 +576,7 @@
     } else {
       $('quest-hint').textContent = 'Wait for the bobber to glow.';
       setGuideMood('concerned');
-      speakTeacher('Not yet. Watch the glow, then tap.', 'queue');
+      setTeacherFeedback('Not yet. Watch the glow, then tap.', 'queue', false);
       attempts += 1;
       persistQuest();
     }
@@ -585,14 +621,16 @@
       if (!result || !result.ok || !result.text) {
         showPractice(true);
         if (reason === 'user-question' && extraUserText && Teacher.practiceReply) {
-          setTeacherLine(Teacher.practiceReply(extraUserText, activeQuest), 'queue', true);
+          setTeacherFeedback(Teacher.practiceReply(extraUserText, activeQuest), 'queue', true);
+          restateCurriculumPrompt('queue');
           persistQuest();
         }
         return null;
       }
       showPractice(false);
       var speakReason = reason === 'user-question' ? 'queue' : 'claude-arrive';
-      setTeacherLine(result.text, speakReason, true);
+      setTeacherFeedback(result.text, speakReason, true);
+      if (reason === 'user-question') restateCurriculumPrompt('queue');
       persistQuest();
       return result.text;
     });
@@ -602,6 +640,7 @@
     var session = progress.getSession();
     if (session.completed && session.completed[subj.id]) return;
     if (voice) voice.skip();
+    invalidateClaude();
     activeQuest = CaldrisQuests.buildQuest(subj.id, TODAY, getGrade(subj.id));
     var saved = progress.getQuestState(subj.id) || {};
     beatIndex = Math.min(saved.beatIndex || 0, activeQuest.beats.length);
@@ -615,20 +654,12 @@
     }
     paintRoomChrome(subj);
     showView('quest-view');
-    var first = CaldrisQuests.firstTeacherLine(activeQuest);
-    if (activeQuest.beats[beatIndex] && activeQuest.beats[beatIndex].prompt) {
-      first = first + (first ? ' ' : '') + activeQuest.beats[beatIndex].prompt;
-    }
-    if (!questLog.length) {
-      setTeacherLine(first, 'queue', true);
-    } else {
-      teacherLine = saved.teacherLine || first;
-      $('quest-prompt').textContent = teacherLine;
-      speakTeacher(teacherLine, 'queue');
-    }
     renderBeat();
+    var beat = currentBeat();
+    var prompt = (Ownership.promptOnReopen && Ownership.promptOnReopen(beat, saved)) || (beat && beat.prompt) || '';
+    setCurriculumPrompt(prompt, 'queue');
+    if (!questLog.length && prompt) questLog.push({ role: 'caldris', text: prompt });
     persistQuest();
-    askClaude(Teacher.startLessonUserLine ? Teacher.startLessonUserLine(activeQuest) : 'Please start the lesson.', 'lesson-start');
   }
 
   function submitAnswer(input) {
@@ -647,32 +678,32 @@
       $('sidekick-line').textContent = 'Yes! I felt that one.';
       setGuideMood('celebrating');
       sfx('complete');
+      invalidateClaude();
       beatIndex += 1;
       persistQuest();
       if (beatIndex >= activeQuest.beats.length) {
-        setTeacherLine(line, 'queue', true);
+        setTeacherFeedback(line, 'queue', true);
         finishQuest();
       } else {
         renderBeat();
-        var next = currentBeat();
-        var combined = line + (next && next.prompt ? ' ' + next.prompt : '');
-        setTeacherLine(combined, 'queue', true);
+        setTeacherFeedback(line, 'queue', true);
+        restateCurriculumPrompt('queue');
       }
       return;
     }
     attempts += 1;
     var missLine = result.almost ? (pick(LINES.almost) || 'Almost.') : (pick(LINES.wrong) || 'Not that one.');
     var hint = (rawBeat && rawBeat.hint) || beat.hint || '';
-    setTeacherLine(missLine + (hint ? ' ' + hint : ''), 'queue', true);
+    setTeacherFeedback(missLine + (hint ? ' ' + hint : ''), 'queue', true);
     $('quest-hint').textContent = hint || missLine;
     $('sidekick-line').textContent = 'Missed. Ask why, or try again.';
     setGuideMood('concerned');
     if (attempts >= 2 && !usingScaffold && (rawBeat.type === 'type' || rawBeat.type === 'speak')) {
+      invalidateClaude();
       usingScaffold = true;
       persistQuest();
       renderBeat();
-      var sc = currentBeat();
-      if (sc && sc.prompt) speakTeacher(sc.prompt, 'queue');
+      restateCurriculumPrompt('queue');
       return;
     }
     persistQuest();
@@ -717,18 +748,19 @@
     var beat = currentBeat();
     if (!beat) return;
     if (attempts >= 1 && !usingScaffold && (beat.type === 'type' || beat.type === 'speak')) {
+      invalidateClaude();
       usingScaffold = true;
       persistQuest();
       renderBeat();
-      var sc = currentBeat();
-      if (sc && sc.prompt) speakTeacher(sc.prompt, 'queue');
+      restateCurriculumPrompt('queue');
       return;
     }
-    speakTeacher(beat.prompt || teacherLine, 'queue');
+    restateCurriculumPrompt('queue');
   }
 
   function finishQuest() {
     if (!activeQuest) return;
+    invalidateClaude();
     var id = activeQuest.subjectId;
     var wasUnlocked = progress.isTvUnlocked();
     var result = progress.completeSubject(id);
@@ -737,7 +769,7 @@
     persistQuest();
     $('done-badge').className = 'done-badge show';
     var doneLine = LINES.complete || 'You earned the stamp. This room is done for today.';
-    setTeacherLine(doneLine, 'queue', true);
+    setCurriculumPrompt(doneLine, 'queue');
     $('quest-stage').innerHTML = '<p class="passage quest-complete-pulse">Door sticker earned! The TV gate still needs every room. Fishing is only a bonus.</p>';
     sfx('complete');
     maybeCelebrateUnlock(wasUnlocked);
@@ -751,6 +783,7 @@
   function showHub(opts) {
     opts = opts || {};
     if (!opts.keepVoice && voice) voice.skip();
+    invalidateClaude();
     clearFish();
     activeQuest = null;
     showView('hub-view');
@@ -764,6 +797,7 @@
   function closeQuest() {
     if (voice) voice.skip();
     if (isListening && recognition) try { recognition.stop(); } catch (e) {}
+    invalidateClaude();
     persistQuest();
     showHub();
   }
